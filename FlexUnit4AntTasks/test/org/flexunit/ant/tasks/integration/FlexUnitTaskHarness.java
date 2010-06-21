@@ -33,8 +33,9 @@ public class FlexUnitTaskHarness extends TestCase
       //fixture.setCommand("/Applications/Safari.app/Contents/MacOS/Safari");
       fixture.setHeadless(false);
       fixture.setWorkingDir("test/sandbox");
-      fixture.addFlexConfig("/Users/dblegros/api/flexsdk/4.0.0/frameworks/flex-config.xml");
-      fixture.addFlexConfig("/Users/dblegros/api/flexsdk/4.0.0/frameworks/flex-config2.xml");
+      //Property configPath = new Property();
+      //configPath.setValue("/Users/dblegros/api/flexsdk/4.0.0/frameworks/flex-config.xml");
+      //fixture.addConfiguredFlexConfig(configPath);
       
       //Call elements next
       FileSet testSourceFileSet = new FileSet();

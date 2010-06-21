@@ -3,6 +3,7 @@ package org.flexunit.ant.tasks;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.Task;
+import org.apache.tools.ant.taskdefs.Property;
 import org.apache.tools.ant.types.FileSet;
 import org.flexunit.ant.tasks.configuration.TaskConfiguration;
 
@@ -134,9 +135,9 @@ public class FlexUnitTask extends Task
       configuration.setDisplay(number);
    }
    
-   public void addFlexConfig(String flexConfigPath)
+   public void addConfiguredFlexConfig(Property property)
    {
-      configuration.setFlexConfig(flexConfigPath);
+      configuration.setFlexConfig(property.getValue());
    }
    
    public void addSource(FileSet fileset)
