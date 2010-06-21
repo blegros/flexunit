@@ -67,6 +67,11 @@ public class TaskConfiguration
       testRunConfiguration.setFailureProperty(failureProperty);
    }
    
+   public void setFlexConfig(String flexConfigPath)
+   {
+      compilationConfiguration.setFlexConfig(project.resolveFile(flexConfigPath));
+   }
+   
    public void addSource(FileSet fileset)
    {
       fileset.setProject(project);

@@ -10,6 +10,7 @@ import org.flexunit.ant.tasks.types.SourcePaths;
 
 public class CompilationConfiguration implements StepConfiguration
 {
+   private File flexConfig;
    private SourcePaths sources;
    private SourcePaths testSources;
    private LibraryPaths libraries;
@@ -32,6 +33,16 @@ public class CompilationConfiguration implements StepConfiguration
    public void setFlexHome(File flexHome)
    {
       this.flexHome = flexHome;
+   }
+   
+   public File getFlexConfig()
+   {
+      return flexConfig;
+   }
+   
+   public void setFlexConfig(File path)
+   {
+      this.flexConfig = path;
    }
 
    public void addLibrary(FileSet fileset)
@@ -105,6 +116,19 @@ public class CompilationConfiguration implements StepConfiguration
       {
          throw new BuildException("No SWC files could be found for the provided 'library' elements.");
       }
+      
+      if(flexConfig != null)
+      {
+         if(!flexConfig.exists())
+         {
+            throw new BuildException("The provided path value [" + flexConfig.getAbsolutePath() + "] for the element 'flexConfig', does not exist.");
+         }
+         
+         if(!flexConfig.isFile())
+         {
+            throw new BuildException("The provided path value [" + flexConfig.getAbsolutePath() + "] for the element 'flexConfig', is not a file.");
+         }
+      }
    }
    
    public void log()
@@ -112,6 +136,10 @@ public class CompilationConfiguration implements StepConfiguration
       LoggingUtil.log("Using the following settings for compilation:");
       LoggingUtil.log("\tFLEX_HOME: [" + flexHome.getAbsolutePath() + "]");
       LoggingUtil.log("\tplayer: [" + player + "]");
+      if(flexConfig != null)
+      {
+         LoggingUtil.log("\tflexConfig: [" + flexConfig.getAbsolutePath() + "]");
+      }
       LoggingUtil.log("\tsourceDirectories: [" + sources.getPathElements(",") + "]");
       LoggingUtil.log("\ttestSourceDirectories: [" + testSources.getPathElements(",") + "]");
       LoggingUtil.log("\tlibraries: [" + libraries.getPathElements(",") + "]");

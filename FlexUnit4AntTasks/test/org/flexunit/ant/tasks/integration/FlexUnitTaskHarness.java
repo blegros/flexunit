@@ -29,10 +29,12 @@ public class FlexUnitTaskHarness extends TestCase
       fixture.setToDir("test/sandbox");
       fixture.setVerbose(true);
       fixture.setFailureproperty("failedtests");
-      fixture.setPlayer("flash");
+      //fixture.setPlayer("flash");
       //fixture.setCommand("/Applications/Safari.app/Contents/MacOS/Safari");
       fixture.setHeadless(false);
       fixture.setWorkingDir("test/sandbox");
+      fixture.addFlexConfig("/Users/dblegros/api/flexsdk/4.0.0/frameworks/flex-config.xml");
+      fixture.addFlexConfig("/Users/dblegros/api/flexsdk/4.0.0/frameworks/flex-config2.xml");
       
       //Call elements next
       FileSet testSourceFileSet = new FileSet();

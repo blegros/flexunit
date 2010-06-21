@@ -158,8 +158,14 @@ public class Compilation
       
       if(configuration.getPlayer().equals("air"))
       {
-         Argument airConfigArgument = task.createArg();
-         airConfigArgument.setValue("+configname=air");
+         Argument airConfig = task.createArg();
+         airConfig.setValue("+configname=air");
+      }
+      
+      if(configuration.getFlexConfig() != null)
+      {
+         Argument customFlexConfig = task.createArg();
+         customFlexConfig.setLine("-load-config \"" + configuration.getFlexConfig().getAbsolutePath() + "\"");
       }
       
       Argument outputFile = task.createArg();

@@ -6,7 +6,6 @@ import org.apache.tools.ant.Task;
 import org.apache.tools.ant.types.FileSet;
 import org.flexunit.ant.tasks.configuration.TaskConfiguration;
 
-//TODO: Add AIR and Flex 4 support to compilation
 public class FlexUnitTask extends Task
 {
    private TaskConfiguration configuration;
@@ -133,6 +132,11 @@ public class FlexUnitTask extends Task
    public void setDisplay(int number)
    {
       configuration.setDisplay(number);
+   }
+   
+   public void addFlexConfig(String flexConfigPath)
+   {
+      configuration.setFlexConfig(flexConfigPath);
    }
    
    public void addSource(FileSet fileset)
