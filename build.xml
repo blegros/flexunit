@@ -21,7 +21,10 @@ to contribute to our CI process.
 
    <!-- Configuration -->
    <property name="build.useFlex" value="true" />
-   <property name="finalName" value="flexunit.zip" />
+   <condition property="flexOrAs3" value="flex" else="as3">
+      <istrue value="${build.useFlex}" />
+   </condition>
+   <property name="finalName" value="flexunit-${build.version}-${flexOrAs3}${build.sdk}.zip" />
 
    <!-- Project locations -->
    <property name="anttasks.loc" location="${basedir}/FlexUnit4AntTasks" />
