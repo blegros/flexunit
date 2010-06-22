@@ -11,7 +11,7 @@ import org.flexunit.ant.FlexUnitSocketServer;
 import org.flexunit.ant.FlexUnitSocketThread;
 import org.flexunit.ant.LoggingUtil;
 import org.flexunit.ant.launcher.FlexUnitLauncher;
-import org.flexunit.ant.report.Reports;
+import org.flexunit.ant.report.Suites;
 import org.flexunit.ant.tasks.configuration.TestRunConfiguration;
 
 public class TestRun
@@ -21,13 +21,13 @@ public class TestRun
    private TestRunConfiguration configuration;
    private Project project;
    
-   private Reports reports;
+   private Suites reports;
 
    public TestRun(Project project, TestRunConfiguration configuration)
    {
       this.project = project;
       this.configuration = configuration;
-      this.reports = new Reports();
+      this.reports = new Suites();
    }
    
    public void run() throws BuildException

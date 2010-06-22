@@ -1,78 +1,173 @@
 package org.flexunit.ant.report;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import org.apache.tools.ant.util.DateUtils;
+import org.flexunit.ant.LoggingUtil;
+
 public class Suite
 {
-   private String _name;
-   private int _tests = 0;
-   private int _failures = 0;
-   private int _errors = 0;
-   private int _skips = 0;
-   private long _time = 0;
+   private String className;
+   private List<TestResult> tests;
+   
+   private int testCount = 0;
+   private int failureCount = 0;
+   private int errorCount = 0;
+   private int successCount = 0;
+   private int ignoreCount = 0;
+   private long totalTime = 0L;
 
-   public Suite(String name)
+   public Suite(String className)
    {
-      super();
-      _name = name;
+      this.className = className;
+      this.tests = new ArrayList<TestResult>();
    }
 
-   public void addTest()
+   public String getClassName()
    {
-      _tests++;
-   }
-
-   public void addFailure()
-   {
-      _failures++;
-   }
-
-   public void addError()
-   {
-      _errors++;
+      return className;
    }
    
-   public void addSkip()
+   public int getTestCount()
    {
-      _skips++;
+      return testCount;
    }
 
-   public String getName()
+   public int getFailureCount()
    {
-      return _name;
+      return failureCount;
    }
 
-   public int getTests()
+   public int getErrorCount()
    {
-      return _tests;
+      return errorCount;
    }
 
-   public int getFailures()
+   public int getSuccessCount()
    {
-      return _failures;
+      return successCount;
    }
 
-   public int getErrors()
+   public int getIgnoreCount()
    {
-      return _errors;
+      return ignoreCount;
+   }
+
+   public long getTotalTime()
+   {
+      return totalTime;
+   }
+
+   public void addTest(TestResult testResult)
+   {
+      if(className.equals(testResult.getClassName()))
+      {
+         //set the test result's name to the class name to report issues outside of test (i.e. - Before, After, etc)
+         if(testResult.getName().equals(null))
+         {
+            testResult.setName(testResult.getClassName());
+         }
+         
+         //filter for duplicates
+         if(!tests.contains(testResult))
+         {
+            tests.add(testResult);
+            incrementCounts(testResult);  //keep running counts to avoid unneeded iteration
+         }
+      }
    }
    
-   public int getSkips()
+   private void incrementCounts(TestResult result)
    {
-      return _skips;
+      if(!result.getName().equals(className))
+      {
+         testCount++;
+      }
+      
+      String template = null;
+      if(result.isSuccess())
+      {
+         successCount++;
+      }
+      else if(result.isFailure())
+      {
+         failureCount++;
+         template = ReportFormatUtil.FAILED_PLAIN_TEMPLATE;
+      }
+      else if(result.isError())
+      {
+         errorCount++;
+         template = ReportFormatUtil.ERRORED_PLAIN_TEMPLATE;
+      }
+      else if(result.isIgnored())
+      {
+         ignoreCount++;
+         template = ReportFormatUtil.IGNORED_PLAIN_TEMPLATE;
+      }
+      
+      totalTime += result.getTime();
+      
+      //Log as failures, errors and ignores come in
+      LoggingUtil.log(MessageFormat.format(template, new Object[]{
+            className,
+            result.getName()
+         }));
    }
 
-   public long getTime()
+   public boolean hasFailures()
    {
-      return _time;
+      return failureCount > 0 || errorCount > 0;
+   }
+
+   public String getXmlSummary()
+   {
+      StringBuilder builder = new StringBuilder();
+      for(TestResult result : tests)
+      {
+         builder.append(result.getXmlSummary());
+         builder.append('\n');
+      }
+      
+      final String timestamp = DateUtils.format(new Date(), DateUtils.ISO8601_DATETIME_PATTERN);
+      
+      return MessageFormat.format(ReportFormatUtil.SUITE_XML_TEMPLATE, new Object[] { 
+            new String(className), 
+            new Integer(testCount),
+            new Integer(failureCount),
+            new Integer(errorCount), 
+            new Integer(ignoreCount),
+            ReportFormatUtil.formatTime(totalTime),
+            getHostName(),
+            timestamp,
+            builder.toString()
+         });
    }
    
-   public void addTime(long time)
+   private String getHostName()
    {
-      _time += time;
+      try
+      {
+         return InetAddress.getLocalHost().getHostName();
+      } catch (UnknownHostException e)
+      {
+         return "localhost";
+      }
    }
-
-   @Override
-   public String toString()
+   
+   public String getSummary()
    {
-      return _name;
+      return MessageFormat.format(ReportFormatUtil.SUITE_PLAIN_TEMPLATE, new Object[] { 
+            new String(className), 
+            new Integer(testCount),
+            new Integer(failureCount),
+            new Integer(errorCount), 
+            new Integer(ignoreCount),
+            ReportFormatUtil.formatTime(totalTime)
+         });
    }
 }
