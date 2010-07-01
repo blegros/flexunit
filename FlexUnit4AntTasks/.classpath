@@ -10,5 +10,6 @@
 	<classpathentry kind="lib" path="lib/ant-launcher-1.7.1.jar"/>
 	<classpathentry kind="lib" path="lib/ant-testutil-1.7.1.jar"/>
 	<classpathentry kind="lib" path="lib/flex-messaging-core.jar" sourcepath="/Users/dblegros/api/blazeds-src-4.0.0.14931/modules"/>
+	<classpathentry kind="lib" path="lib/flex-messaging-common.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
