@@ -113,10 +113,13 @@ public class Suite
       totalTime += result.getTime();
       
       //Log as failures, errors and ignores come in
-      LoggingUtil.log(MessageFormat.format(template, new Object[]{
-            className,
-            result.getName()
-         }));
+      if(template != null)
+      {
+         LoggingUtil.log(MessageFormat.format(template, new Object[]{
+               className,
+               result.getName()
+            }));
+      }
    }
 
    public boolean hasFailures()

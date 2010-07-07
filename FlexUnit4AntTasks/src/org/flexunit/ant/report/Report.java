@@ -2,6 +2,8 @@ package org.flexunit.ant.report;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
 import org.apache.tools.ant.BuildException;
@@ -18,6 +20,11 @@ public class Report
    {
       this.suite = suite;
    }
+   
+   public String getClassName()
+   {
+      return suite.getClassName();
+   }
 
    /**
     * Write the report out to file
@@ -32,14 +39,33 @@ public class Report
          if(channel == null)
          {
             // Open the file matching the parameter suite
-            final File file = new File(reportDir, FILENAME_PREFIX + suite + FILENAME_EXTENSION);
+            final File file = new File(reportDir, FILENAME_PREFIX + suite.getClassName() + FILENAME_EXTENSION);
             final FileOutputStream fos = new FileOutputStream(file);
             channel = fos.getChannel();
          }
+         
+         final ByteBuffer content = ByteBuffer.wrap(suite.getXmlSummary().getBytes());
+         channel.position(0); //rewind file pointer
+         channel.write(content);
+         
+         //don't close until the report is GC'd for faster report writing (see #finalize)
       }
       catch (Exception e)
       {
          throw new BuildException("Error saving report.", e);
+      }
+   }
+   
+   @Override
+   protected void finalize()
+   {
+      try
+      {
+         channel.close();
+      }
+      catch(IOException ioe)
+      {
+         ioe.printStackTrace();
       }
    }
 }

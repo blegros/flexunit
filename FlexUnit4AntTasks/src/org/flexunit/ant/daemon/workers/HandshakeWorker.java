@@ -24,13 +24,13 @@ public class HandshakeWorker implements Worker
       if(!shook)
       {
          String request = WorkerUtil.readUtf8String(message);
-         accept = request.equals(HANDSHAKE_REQUEST);
+         accept = HANDSHAKE_REQUEST.equals(request);
       }
       
       return accept;
    }
 
-   public byte[] process(byte[] message)
+   public byte[] process(byte[] message) throws WorkerException
    {
       //send return signal for handshake
       server.send(WorkerUtil.toUtf8Bytes(HANDSHAKE_RESPONSE));

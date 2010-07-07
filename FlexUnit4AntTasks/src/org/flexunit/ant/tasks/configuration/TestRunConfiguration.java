@@ -9,7 +9,7 @@ import org.flexunit.ant.launcher.OperatingSystem;
 public class TestRunConfiguration implements StepConfiguration
 {
    private final int FLOOR_FOR_PORT = 1;
-   private final int SHORTEST_SOCKET_TIMEOUT = 5000; //ms
+   private final int SHORTEST_SOCKET_TIMEOUT = 10000; //ms
 
    private String player;
    private File command = null;
@@ -21,7 +21,7 @@ public class TestRunConfiguration implements StepConfiguration
    private boolean isLocalTrusted = true;
    private int port = 1024;
    private File reportDir = null;
-   private int serverBufferSize = 262144; //bytes
+   private int serverBufferSize = 65536; //bytes
    private int socketTimeout = 60000; //milliseconds
    private File swf = null;
    
@@ -207,6 +207,7 @@ public class TestRunConfiguration implements StepConfiguration
       LoggingUtil.log("\tFLEX_HOME: [" + flexHome.getAbsolutePath() + "]");
       LoggingUtil.log("\thaltonfailure: [" + failOnTestFailure + "]");
       LoggingUtil.log("\theadless: [" + headless + "]");
+      LoggingUtil.log("\tbuffer: [" + serverBufferSize + "]");
       LoggingUtil.log("\tdisplay: [" + display + "]");
       LoggingUtil.log("\tlocalTrusted: [" + isLocalTrusted + "]");
       LoggingUtil.log("\tplayer: [" + player + "]");

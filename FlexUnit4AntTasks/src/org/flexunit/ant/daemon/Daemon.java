@@ -1,5 +1,6 @@
 package org.flexunit.ant.daemon;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -13,39 +14,48 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.Callable;
 
 import org.apache.tools.ant.BuildException;
 import org.flexunit.ant.LoggingUtil;
+import org.flexunit.ant.daemon.workers.WorkerException;
 
-public class Daemon implements Runnable
+//TODO: Add Javadocs
+//TODO: Improve logging workflow
+public class Daemon implements Callable<Object>
 {
-   public static final String DEFAULT_HOST = "127.0.0.1";
-   public static int DEFAULT_PORT = 1025;
-   private final int BUFFER_SIZE = 262144;
+   private final String LOCALHOST = "127.0.0.1";
 
    private InetAddress hostAddress;
    private int port;
+   private long timeout;
+   
    private ServerSocketChannel serverChannel;
    private Selector selector;
-   private SocketChannel socketChannel; // only possible if one connection is
-                                        // ever being made to server
-   private ByteBuffer readBuffer = ByteBuffer.allocate(BUFFER_SIZE);
+   private SocketChannel socketChannel; // only possible if one connection is ever being made to server
+   private ByteBuffer readBuffer;
 
    private List<ChangeRequest> changeRequests = new LinkedList<ChangeRequest>();
    private List<ByteBuffer> pendingData = new ArrayList<ByteBuffer>();
 
+   private Timer readyTimer;
    private MessageRouter router;
 
    private Boolean ready = false;
-   
-   private int reads = 0;
+   private Boolean shutdown = false;
 
-   public Daemon(InetAddress hostAddress, int port) throws IOException
+   public Daemon(int port, int bufferSize, long timeout, File reportDir) throws IOException
    {
-      this.hostAddress = hostAddress;
+      this.hostAddress = InetAddress.getByName(LOCALHOST);
       this.port = port;
+      this.timeout = timeout;
+      
+      this.readyTimer = new Timer();
+      this.readBuffer = ByteBuffer.allocate(bufferSize);
       this.selector = this.initSelector();
-      this.router = new MessageRouter(this);
+      this.router = new MessageRouter(this, timeout, reportDir);
    }
 
    private Selector initSelector() throws IOException
@@ -64,8 +74,30 @@ public class Daemon implements Runnable
       // Register the server socket channel, indicating an interest in
       // accepting new connections
       serverChannel.register(socketSelector, SelectionKey.OP_ACCEPT);
+      
+      //timeout if not ready by provided timeout value
+      TimerTask task = new TimerTask(){
+         @Override
+         public void run()
+         {
+            if(!isReady())
+            {
+               LoggingUtil.log("The Ant task timed out waiting for a connection from the player...");
+               halt();
+            }
+         }
+      };
+      
+      readyTimer.schedule(task, timeout);
 
       return socketSelector;
+   }
+   
+   private void destroyTimer()
+   {
+      readyTimer.cancel();
+      readyTimer.purge();
+      readyTimer = null;
    }
 
    public InetAddress getHostAddress()
@@ -81,43 +113,81 @@ public class Daemon implements Runnable
    public boolean isReady()
    {
       boolean result = false;
-      
-      synchronized(ready)
+
+      synchronized (ready)
       {
          result = ready;
       }
-      
+
       return result;
    }
 
    public void ready()
    {
-      synchronized(ready)
+      synchronized (ready)
       {
          ready = true;
       }
+      
+      destroyTimer();
    }
 
-   public void run()
+   public void halt()
    {
-      while (true)
+      synchronized (this.changeRequests)
+      {
+         changeRequests.add(new ChangeRequest(ChangeRequest.SHUTDOWN, 0));
+      }
+
+      synchronized(this.shutdown)
+      {
+         shutdown = true;
+      }
+      
+      
+      if(readyTimer != null)
+      {
+         destroyTimer();
+      }
+      
+      selector.wakeup();
+   }
+   
+   public boolean shuttingDown()
+   {
+      boolean result = false;
+      
+      synchronized(shutdown)
+      {
+         result = shutdown;
+      }
+      
+      return result;
+   }
+
+   public Object call() throws Exception
+   {
+      while (serverChannel.isOpen())
       {
          try
          {
             // Process any pending changes
             synchronized (this.changeRequests)
             {
-               Iterator<ChangeRequest> changes = this.changeRequests.iterator();
-               while (changes.hasNext())
+               for (ChangeRequest change : changeRequests)
                {
-                  ChangeRequest change = (ChangeRequest) changes.next();
                   switch (change.type)
                   {
                   case ChangeRequest.CHANGEOPS:
                      SelectionKey key = this.socketChannel.keyFor(this.selector);
                      key.interestOps(change.ops);
+                     break;
+                  case ChangeRequest.SHUTDOWN:
+                     close();
+                     return null;
                   }
                }
+
                this.changeRequests.clear();
             }
 
@@ -129,8 +199,8 @@ public class Daemon implements Runnable
             while (selectedKeys.hasNext())
             {
                SelectionKey key = (SelectionKey) selectedKeys.next();
-               selectedKeys.remove(); // absolutely must remove keys as they are
-               // read, otherwise infinite loop
+               selectedKeys.remove(); // remove keys as read as to not read
+                                      // again
 
                if (!key.isValid())
                {
@@ -151,27 +221,40 @@ public class Daemon implements Runnable
                }
             }
          }
-         catch (MultipleConnectionException mce)
-         {
-            mce.printStackTrace();
-            throw new BuildException(mce);
-         }
          catch (Exception e)
          {
-            e.printStackTrace();
-            throw new BuildException(e);
+            e.printStackTrace(); // print error message that caused shutdown
+
+            try
+            {
+               close();
+            }
+            catch (IOException ioe)
+            {
+               ioe.printStackTrace();
+            }
+
+            throw new BuildException(e); // throw that error as a build
+                                         // exception
          }
       }
+
+      return null;
    }
 
    private void accept(SelectionKey key) throws IOException, MultipleConnectionException
    {
-      //close the current socket channel and remove it
-      if(this.socketChannel != null)
+      if (isReady())
+      {
+         throw new MultipleConnectionException("Cannot accept more than one connection at a time.");
+      }
+
+      // close the current socket channel and remove it
+      if (this.socketChannel != null)
       {
          this.socketChannel.close();
       }
-      
+
       // For an accept to be pending the channel must be a server socket
       // channel.
       ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel();
@@ -187,53 +270,49 @@ public class Daemon implements Runnable
       socketChannel.register(this.selector, SelectionKey.OP_READ);
 
       this.socketChannel = socketChannel;
-
-      LoggingUtil.log("Waiting for data ...");
    }
 
-   private void read(SelectionKey key) throws IOException
+   private void read(SelectionKey key) throws IOException, ClientShutdownException, WorkerException
    {
-      LoggingUtil.log("Read request: " + ++reads);
       SocketChannel channel = (SocketChannel) key.channel();
+      boolean keepReading = true;
 
-      // Clear out our read buffer so it's ready for new data
-      this.readBuffer.clear();
+      while (keepReading)
+      {
+         // Clear out our read buffer so it's ready for new data
+         this.readBuffer.clear();
 
-      // Attempt to read off the channel
-      int numRead = fillBuffer(channel);
-      if (numRead == -1)
-      {
-         // Remote entity shut the socket down cleanly. Do the
-         // same from our end and cancel the channel.
-         key.channel().close();
-         key.cancel();
-         return;
-      }
+         int numRead = channel.read(this.readBuffer);
+         ;
+         readBuffer.rewind(); // read move the buffer position forward
 
-      // Hand the data off to the message router
-      //TODO: May have to upgrade to read from socketBuffer until numRead < capacity or numRead == 0 so can use a smaller buffer
-      if(numRead != 0)
-      {
-         byte[] message = new byte[numRead];
-         readBuffer.get(message, 0, numRead);
-         router.route(message);
+         if (numRead == -1)
+         {
+            // Remote entity shut the socket down. Do the
+            // same from our end and cancel the channel.
+            key.cancel();
+            key.channel().close();
+
+            if (isReady())
+            {
+               throw new ClientShutdownException();
+            }
+         }
+
+         // Hand the data off to the message router if bytes were read
+         if (numRead > 0)
+         {
+            byte[] message = new byte[numRead];
+            readBuffer.get(message, 0, numRead);
+            router.route(message);
+         }
+
+         // check to see if we should stop reading
+         if (numRead != readBuffer.capacity())
+         {
+            keepReading = false;
+         }
       }
-   }
-   
-   private int fillBuffer(SocketChannel channel)
-   {
-      int numRead = 0;
-      try
-      {
-         numRead = channel.read(this.readBuffer);
-         this.readBuffer.rewind();
-      }
-      catch (IOException e)
-      {
-         numRead = -1;
-      }
-      
-      return numRead;
    }
 
    public void send(byte[] data)
@@ -263,35 +342,41 @@ public class Daemon implements Runnable
 
       synchronized (this.pendingData)
       {
-         LoggingUtil.log("Write queue size: " + pendingData.size());
-
          // Write until there's not more data ...
          while (!pendingData.isEmpty())
          {
-            LoggingUtil.log("Writing head of queue to socket.");
-
-            ByteBuffer buf = (ByteBuffer) pendingData.get(0);
+            ByteBuffer buf = pendingData.get(0);
 
             socketChannel.write(buf);
 
             if (buf.remaining() > 0)
             {
                // ... or the socket's buffer fills up
-               break; // TODO: revisit
+               break;
             }
 
             pendingData.remove(0);
          }
 
+         // We wrote away all data, so we're no longer interested
+         // in writing on this socket.
          if (pendingData.isEmpty())
          {
-            LoggingUtil.log("Write queue empty, switching to read mode.");
-
-            // We wrote away all data, so we're no longer interested
-            // in writing on this socket. Switch back to waiting for
-            // data.
             key.interestOps(SelectionKey.OP_READ);
          }
       }
+   }
+
+   private void close() throws IOException
+   {
+      router.shutdown();
+      selector.close();
+      
+      if(socketChannel != null)
+      {
+         socketChannel.close();
+      }
+      
+      serverChannel.close();
    }
 }

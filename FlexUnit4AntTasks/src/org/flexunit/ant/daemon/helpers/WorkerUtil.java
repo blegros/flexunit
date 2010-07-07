@@ -45,7 +45,7 @@ public class WorkerUtil
       
       byte[] copy = new byte[array1.length + array2.length];
       System.arraycopy(array1, 0, copy, 0, array1.length);
-      System.arraycopy(array2, 0, copy, array1.length + 1, array2.length);
+      System.arraycopy(array2, 0, copy, array1.length, array2.length);
       
       return copy;
    }

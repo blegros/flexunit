@@ -1,8 +1,10 @@
 package org.flexunit.ant.daemon.integration;
 
+import java.io.File;
 import java.net.InetAddress;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.flexunit.ant.LoggingUtil;
 import org.flexunit.ant.daemon.Daemon;
@@ -15,15 +17,24 @@ public class DaemonProcessTest
       try
       {
          LoggingUtil.VERBOSE = true;
-         
-         InetAddress address = InetAddress.getByName("127.0.0.1");
+
          ExecutorService executor = Executors.newSingleThreadExecutor();
-         executor.execute(new Daemon(address, 1025));
+         Future<Object> future = executor.submit(new Daemon(
+                  1025, 
+                  64000, 
+                  10000L, 
+                  new File("/Users/dblegros/Documents/workspace/flexunit/FlexUnit4AntTasks/test/temp"
+               )));
+         
+         Object result = future.get();
       }
-      catch(Exception e)
+      catch (Exception e)
       {
          e.printStackTrace();
       }
+
+      LoggingUtil.log("ALL DONE!");
+      System.exit(0);
    }
-   
+
 }

@@ -1,24 +1,24 @@
 package org.flexunit.ant.daemon.workers;
 
-import org.apache.tools.ant.BuildException;
 import org.flexunit.ant.LoggingUtil;
 import org.flexunit.ant.daemon.Daemon;
 import org.flexunit.ant.daemon.helpers.WorkerUtil;
 
 public class HeartbeatWorker implements Worker, Runnable
 {
-   private static final String HEARTBEAT_REQUEST = "tha";      //sent by worker
-   private static final String HEARTBEAT_RESPONSE = "thump";   //received by worker
-   private static final long TIMEOUT = 5000;                   //approx timeout period to wait until failure
+   private static final String HEARTBEAT_REQUEST = "?thump?";      //sent by worker
+   private static final String HEARTBEAT_RESPONSE = "!thump!";   //received by worker
    private static final int RETRY_LIMIT = 3;                   //used as a divisor to determine timeout if heartbeat hiccups
 
    private Daemon server;
    private Boolean clientAlive = false;   //needs to be thread safe
+   private long timeout;
    private int retries = 0;
 
-   public HeartbeatWorker(Daemon server)
+   public HeartbeatWorker(Daemon server, long timeout)
    {
       this.server = server;
+      this.timeout = timeout;
    }
 
    public boolean canProcess(byte[] message)
@@ -30,15 +30,22 @@ public class HeartbeatWorker implements Worker, Runnable
          //if client isn't alive, check to see if it's telling me it is
          if (!clientAlive)
          {
-            String keepAlive = WorkerUtil.readUtf8String(message);
-            accept = keepAlive.equals(HEARTBEAT_RESPONSE);
+            try
+            {
+               String keepAlive = WorkerUtil.readUtf8String(message);
+               accept = HEARTBEAT_RESPONSE.equals(keepAlive);
+            }
+            catch(Exception e)
+            {
+               accept = false;
+            }
          }
       }
 
       return accept;
    }
 
-   public byte[] process(byte[] message)
+   public byte[] process(byte[] message) throws WorkerException
    {
       //got pass verification, so record the client is alive for thread
       synchronized (clientAlive)
@@ -46,22 +53,24 @@ public class HeartbeatWorker implements Worker, Runnable
          clientAlive = true;
       }
 
+      //send back bytes we didn't use
       try
       {
          return WorkerUtil.sliceUtf(HEARTBEAT_RESPONSE, message);
       }
       catch(Exception e)
       {
-         return null;
+         throw new WorkerException("Slicing heartbeat from input stream failed ....", e);
       }
    }
 
    public void run()
    {
       //calculate timeout based on # of retry periods
-      long retryTimeout = TIMEOUT / RETRY_LIMIT;
+      long retryTimeout = timeout / RETRY_LIMIT;
       
-      while (true)
+      //TODO: Need to use check condition to kill loop rather than infinite loop
+      while (!server.shuttingDown())
       {
          if (server.isReady())
          {
@@ -80,6 +89,8 @@ public class HeartbeatWorker implements Worker, Runnable
                }
                catch (InterruptedException ie)
                {
+                  LoggingUtil.log("Heartbeat worker done.");
+                  return;
                }
                
                //after waiting, did the client say it was alive?
@@ -94,7 +105,9 @@ public class HeartbeatWorker implements Worker, Runnable
                   else
                   {
                      //otherwise, kick out because client isn't reporting
-                     throw new BuildException("This task timed out waiting for the Flash movie to respond.");
+                     LoggingUtil.log("This task timed out waiting for the Flash movie to respond.");
+                     server.halt();
+                     return;
                   }
                }
 
@@ -103,6 +116,7 @@ public class HeartbeatWorker implements Worker, Runnable
             }
          }
       }
+      
+      LoggingUtil.log("Heartbeat worker done.");
    }
-
 }

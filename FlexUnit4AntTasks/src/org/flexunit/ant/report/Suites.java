@@ -26,7 +26,7 @@ public class Suites extends HashMap<String, Suite>
       int errors = 0;
       int failures = 0;
       int ignores = 0;
-      double time = 0.00;
+      long time = 0;
       
       for(Suite suite : this.values())
       {
@@ -36,7 +36,7 @@ public class Suites extends HashMap<String, Suite>
          ignores += suite.getIgnoreCount();
          time += suite.getTotalTime();
          
-         summary.append(suite.getXmlSummary());
+         summary.append(suite.getSummary());
          summary.append('\n');
       }
       
@@ -47,7 +47,7 @@ public class Suites extends HashMap<String, Suite>
             new Integer(failures), 
             new Integer(errors),
             new Integer(ignores),
-            new Double(time)
+            ReportFormatUtil.formatTime(time)
          }));
       
       summary.append('\n');

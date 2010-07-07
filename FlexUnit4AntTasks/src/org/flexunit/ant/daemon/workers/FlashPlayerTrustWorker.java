@@ -30,7 +30,7 @@ public class FlashPlayerTrustWorker implements Worker
          if(message.length > POLICY_FILE_REQUEST.length())
          {
             String policyMessage = new String(message, 0, POLICY_FILE_REQUEST.length());
-            accept = policyMessage.equals(POLICY_FILE_REQUEST);
+            accept = POLICY_FILE_REQUEST.equals(policyMessage);
          }
          
          //if we're not marked as ready and got a message that wasn't the policy 
@@ -44,15 +44,22 @@ public class FlashPlayerTrustWorker implements Worker
       return accept;
    }
 
-   public byte[] process(byte[] message)
+   public byte[] process(byte[] message) throws WorkerException
    {
-      String response = MessageFormat.format(DOMAIN_POLICY, new Object[]{ 
-            Integer.toString(server.getPort()) 
-         });
+      try
+      {
+         String response = MessageFormat.format(DOMAIN_POLICY, new Object[]{ 
+               Integer.toString(server.getPort()) 
+            });
 
-      server.send(response.getBytes());
-      
-      negotiated = true;
+         server.send(response.getBytes());
+         
+         negotiated = true;
+      }
+      catch(Exception e)
+      {
+         throw new WorkerException("Could not parse FP trust policy template", e);
+      }
       
       return null;
    }

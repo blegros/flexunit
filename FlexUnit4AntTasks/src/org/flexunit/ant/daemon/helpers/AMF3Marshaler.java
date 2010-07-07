@@ -2,9 +2,7 @@ package org.flexunit.ant.daemon.helpers;
 
 import java.io.IOException;
 
-
 import flex.messaging.io.SerializationContext;
-import flex.messaging.io.amf.Amf3Output;
 
 public class AMF3Marshaler
 {
@@ -21,7 +19,7 @@ public class AMF3Marshaler
       this.inputHelper = new Amf3Input(context);
    }
    
-   public AMF3Marshaler(Amf3Output out, Amf3Input in)
+   public AMF3Marshaler(Amf3Input in)
    {
       this.inputHelper = in;
    }

@@ -8,4 +8,14 @@ public class MultipleConnectionException extends Exception
    {
       super(message);
    }
+   
+   public MultipleConnectionException(Throwable throwable)
+   {
+      super(throwable);
+   }
+   
+   public MultipleConnectionException(String message, Throwable throwable)
+   {
+      super(message, throwable);
+   }
 }
