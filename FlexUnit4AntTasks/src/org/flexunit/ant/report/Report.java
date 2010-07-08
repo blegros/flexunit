@@ -6,8 +6,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
-import org.apache.tools.ant.BuildException;
-
 public class Report
 {
    private static final String FILENAME_PREFIX = "TEST-";

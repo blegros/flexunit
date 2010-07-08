@@ -139,7 +139,7 @@ public class Suite
       final String timestamp = DateUtils.format(new Date(), DateUtils.ISO8601_DATETIME_PATTERN);
       
       return MessageFormat.format(ReportFormatUtil.SUITE_XML_TEMPLATE, new Object[] { 
-            new String(className), 
+            new String(ReportFormatUtil.sanitizeClassName(className)), 
             new Integer(testCount),
             new Integer(failureCount),
             new Integer(errorCount), 
