@@ -3,14 +3,13 @@ package org.flexunit.ant.daemon.workers;
 import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
 
 import org.flexunit.ant.LoggingUtil;
 import org.flexunit.ant.daemon.Daemon;
 import org.flexunit.ant.daemon.helpers.AMF3Marshaler;
 import org.flexunit.ant.daemon.helpers.WorkerUtil;
 import org.flexunit.ant.report.Report;
+import org.flexunit.ant.report.ReportException;
 import org.flexunit.ant.report.Suite;
 import org.flexunit.ant.report.Suites;
 import org.flexunit.ant.report.TestResult;
@@ -23,19 +22,17 @@ public class TestResultsWorker implements Worker, Runnable
 
    // shared
    private List<TestResult> queue;
-   private CyclicBarrier barrier;
 
    // used by consumer
    private File reportDir;
    private Suites suites;
    private Report lastReport;
 
-   public TestResultsWorker(Daemon server, File reportDir, CyclicBarrier barrier)
+   public TestResultsWorker(Daemon server, File reportDir)
    {
       this.server = server;
-      this.barrier = barrier;
       this.reportDir = reportDir;
-      
+
       this.marshaler = new AMF3Marshaler();
       this.queue = new LinkedList<TestResult>();
       this.suites = new Suites();
@@ -93,64 +90,68 @@ public class TestResultsWorker implements Worker, Runnable
 
    public void run()
    {
-      //TODO: Need to use check condition to kill loop rather than infinite loop
-      while (!server.shuttingDown())
+      // don't start looking for tests until server is ready
+      while (server.isOpen())
       {
-         if (server.isReady()) // can I start checking for queued results?
+         synchronized(queue)
          {
-            TestResult testResult = null;
-
-            synchronized (queue)
+            try
             {
-               while (queue.isEmpty())
-               {
-                  try
-                  {
-                     //has an end of run been reached?
-                     if(barrier.getNumberWaiting() == 1)
-                     {
-                        //if a end of run has been sent, it's waiting on me; let it know I'm done
-                        try
-                        {
-                           LoggingUtil.log(suites.getSummary(), true);
-                           barrier.await();
-                        }
-                        catch(BrokenBarrierException e)
-                        {
-                           LoggingUtil.log("TestResult worker done due to barrier issue.");
-                           return;
-                        }
-                        catch(InterruptedException ie)
-                        {
-                           LoggingUtil.log("TestResult worker done.");
-                           return;
-                        }
-                     }
-                     else
-                     {
-                        //wait for more action
-                        queue.wait();
-                     }
-                  }
-                  catch (InterruptedException ie)
-                  {
-                     LoggingUtil.log("TestResult worker done.");
-                     return;
-                  }
-               }
-
-               testResult = queue.remove(0);
+               queue.wait(10);
             }
-
-            if (testResult != null)
+            catch (InterruptedException ie)
             {
-               Suite suite = findSuite(testResult);
-               writeReport(suite);
+               LoggingUtil.log("TestResult thread done.");
+               return;
             }
          }
       }
-      
-      LoggingUtil.log("TestResult worker done.");
+
+      //keep looping until server is done and queue is empty.  can't use condition here due to sync req
+      server: while (true)
+      {
+         TestResult testResult = null;
+
+         synchronized (queue)
+         {
+            while (queue.isEmpty())
+            {
+               if (server.isDone())
+               {
+                  // write out summary, stop server, and end
+                  LoggingUtil.log(suites.getSummary(), true);
+                  server.halt();
+                  break server;
+               }
+
+               try
+               {
+                  // wait for more action
+                  queue.wait(100);
+               }
+               catch (InterruptedException ie)
+               {
+                  break server;
+               }
+            }
+
+            testResult = queue.remove(0);
+         }
+
+         Suite suite = findSuite(testResult);
+         
+         try
+         {
+            writeReport(suite);
+         }
+         catch (ReportException re) {
+            re.printStackTrace();
+            server.halt();
+            break server;
+         }
+      }
+
+      LoggingUtil.log("TestResult thread done.");
    }
 
    private Suite findSuite(TestResult testResult)
@@ -172,7 +173,7 @@ public class TestResultsWorker implements Worker, Runnable
       return suite;
    }
 
-   private void writeReport(Suite suite)
+   private void writeReport(Suite suite) throws ReportException
    {
       // Write out report
       Report report = null;
@@ -195,8 +196,8 @@ public class TestResultsWorker implements Worker, Runnable
       }
 
       report.save(reportDir);
-
-      lastReport = report; // set current report as lastReport to reuse report's
-                           // channel
+      
+      // set current report as lastReport to reuse report's channel
+      lastReport = report;
    }
 }

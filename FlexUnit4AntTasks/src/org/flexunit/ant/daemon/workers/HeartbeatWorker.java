@@ -6,12 +6,14 @@ import org.flexunit.ant.daemon.helpers.WorkerUtil;
 
 public class HeartbeatWorker implements Worker, Runnable
 {
-   private static final String HEARTBEAT_REQUEST = "?thump?";      //sent by worker
-   private static final String HEARTBEAT_RESPONSE = "!thump!";   //received by worker
-   private static final int RETRY_LIMIT = 3;                   //used as a divisor to determine timeout if heartbeat hiccups
+   private static final String HEARTBEAT_REQUEST = "?thump?"; // sent by worker
+   private static final String HEARTBEAT_RESPONSE = "!thump!"; // received by
+                                                               // worker
+   private static final int RETRY_LIMIT = 3; // used as a divisor to determine
+                                             // timeout if heartbeat hiccups
 
    private Daemon server;
-   private Boolean clientAlive = false;   //needs to be thread safe
+   private Boolean clientAlive = false; // needs to be thread safe
    private long timeout;
    private int retries = 0;
 
@@ -27,7 +29,7 @@ public class HeartbeatWorker implements Worker, Runnable
 
       synchronized (clientAlive)
       {
-         //if client isn't alive, check to see if it's telling me it is
+         // if client isn't alive, check to see if it's telling me it is
          if (!clientAlive)
          {
             try
@@ -35,7 +37,7 @@ public class HeartbeatWorker implements Worker, Runnable
                String keepAlive = WorkerUtil.readUtf8String(message);
                accept = HEARTBEAT_RESPONSE.equals(keepAlive);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                accept = false;
             }
@@ -47,18 +49,20 @@ public class HeartbeatWorker implements Worker, Runnable
 
    public byte[] process(byte[] message) throws WorkerException
    {
-      //got pass verification, so record the client is alive for thread
+      LoggingUtil.log("Client heartbeat recieved.");
+      
+      // got pass verification, so record the client is alive for thread
       synchronized (clientAlive)
       {
          clientAlive = true;
       }
 
-      //send back bytes we didn't use
+      // send back bytes we didn't use
       try
       {
          return WorkerUtil.sliceUtf(HEARTBEAT_RESPONSE, message);
       }
-      catch(Exception e)
+      catch (Exception e)
       {
          throw new WorkerException("Slicing heartbeat from input stream failed ....", e);
       }
@@ -66,57 +70,70 @@ public class HeartbeatWorker implements Worker, Runnable
 
    public void run()
    {
-      //calculate timeout based on # of retry periods
+      // calculate timeout based on # of retry periods
       long retryTimeout = timeout / RETRY_LIMIT;
-      
-      //TODO: Need to use check condition to kill loop rather than infinite loop
-      while (!server.shuttingDown())
+
+      //don't start looking for hearbeat until server is ready
+      while (server.isOpen())
       {
-         if (server.isReady())
+         synchronized(clientAlive)
          {
-            LoggingUtil.log("Sending heartbeat.");
-            
-            // send a request asking if the client is still alive
-            byte[] response = WorkerUtil.toUtf8Bytes(HEARTBEAT_REQUEST);
-            server.send(response);
-
-            synchronized (clientAlive)
+            try
             {
-               try
-               {
-                  //give the client a chance to respond
-                  clientAlive.wait(retryTimeout);
-               }
-               catch (InterruptedException ie)
-               {
-                  LoggingUtil.log("Heartbeat worker done.");
-                  return;
-               }
-               
-               //after waiting, did the client say it was alive?
-               if (!clientAlive)
-               {
-                  //if not, then increment retries and give another shot
-                  if(retries < RETRY_LIMIT)
-                  {
-                     LoggingUtil.log("Heartbeat retry attempt [" + (retries + 1) + " of " + RETRY_LIMIT + "]");
-                     retries ++;
-                  }
-                  else
-                  {
-                     //otherwise, kick out because client isn't reporting
-                     LoggingUtil.log("This task timed out waiting for the Flash movie to respond.");
-                     server.halt();
-                     return;
-                  }
-               }
-
-               // reset client's alive status and ask again
-               clientAlive = false;
+               clientAlive.wait(10);
+            }
+            catch (InterruptedException ie)
+            {
+               LoggingUtil.log("Heartbeat thread done.");
+               return;
             }
          }
       }
-      
-      LoggingUtil.log("Heartbeat worker done.");
+
+      //check for heartbeat
+      while (server.isReady())
+      {
+         LoggingUtil.log("Sending heartbeat.");
+
+         // send a request asking if the client is still alive
+         byte[] response = WorkerUtil.toUtf8Bytes(HEARTBEAT_REQUEST);
+         server.send(response);
+
+         synchronized (clientAlive)
+         {
+            try
+            {
+               // give the client a chance to respond
+               clientAlive.wait(retryTimeout);
+            }
+            catch (InterruptedException ie)
+            {
+               break;
+            }
+
+            // after waiting, did the client say it was alive?
+            if (!clientAlive)
+            {
+               // if not, then increment retries and give another shot
+               if (retries <= RETRY_LIMIT)
+               {
+                  LoggingUtil.log("Heartbeat retry attempt [" + (++retries) + " of " + RETRY_LIMIT + "]");
+               }
+               else
+               {
+                  // otherwise, kick out because client isn't reporting
+                  LoggingUtil.log("This task timed out waiting for the Flash movie to respond.");
+                  server.done();
+                  server.halt();
+                  break;
+               }
+            }
+
+            // reset client's alive status and ask again
+            clientAlive = false;
+         }
+      }
+
+      LoggingUtil.log("Heartbeat thread done.");
    }
 }

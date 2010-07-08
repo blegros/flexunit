@@ -116,7 +116,7 @@ public class Suite
       if(template != null)
       {
          LoggingUtil.log(MessageFormat.format(template, new Object[]{
-               className,
+               ReportFormatUtil.sanitizeClassName(className),
                result.getName()
             }));
       }
@@ -165,7 +165,7 @@ public class Suite
    public String getSummary()
    {
       return MessageFormat.format(ReportFormatUtil.SUITE_PLAIN_TEMPLATE, new Object[] { 
-            new String(className), 
+            new String(ReportFormatUtil.sanitizeClassName(className)), 
             new Integer(testCount),
             new Integer(failureCount),
             new Integer(errorCount), 

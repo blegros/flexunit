@@ -5,8 +5,8 @@ import org.flexunit.ant.daemon.helpers.WorkerUtil;
 
 public class HandshakeWorker implements Worker
 {
-   private static final String HANDSHAKE_REQUEST = "ack"; 
-   private static final String HANDSHAKE_RESPONSE = "yack";
+   private static final String HANDSHAKE_REQUEST = "?ack?"; 
+   private static final String HANDSHAKE_RESPONSE = "!yack!";
 
    private Daemon server;
    private boolean shook = false;

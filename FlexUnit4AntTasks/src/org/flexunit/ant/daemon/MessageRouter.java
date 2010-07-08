@@ -3,11 +3,9 @@ package org.flexunit.ant.daemon;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.flexunit.ant.LoggingUtil;
 import org.flexunit.ant.daemon.helpers.WorkerUtil;
 import org.flexunit.ant.daemon.workers.FlashPlayerTrustWorker;
 import org.flexunit.ant.daemon.workers.HandshakeWorker;
@@ -20,27 +18,22 @@ import org.flexunit.ant.daemon.workers.WorkerException;
 
 public class MessageRouter
 {
-   private static final int WORKER_THREAD_POOL_SIZE = 3;
+   private static final int WORKER_THREAD_POOL_SIZE = 2;
    
    private List<Worker> pipeline;
    private ExecutorService executor;
-   
-   //shared barrier lock to allow receipt of results and writing of reports to occur in different threads
-   private CyclicBarrier barrier;
    
    //used as an internal buffer for routed message leftovers
    byte[] leftOver = null;
    
    public MessageRouter(Daemon server, long timeout, File reportDir)
    {
-      barrier = new CyclicBarrier(2);
-      
       pipeline = new ArrayList<Worker>();
       pipeline.add(new FlashPlayerTrustWorker(server));
       pipeline.add(new HandshakeWorker(server));
       pipeline.add(new HeartbeatWorker(server, timeout));
-      pipeline.add(new TestResultsWorker(server, reportDir, barrier));
-      pipeline.add(new TestCompletionWorker(server, barrier));
+      pipeline.add(new TestResultsWorker(server, reportDir));
+      pipeline.add(new TestCompletionWorker(server));
       
       activateThreadedWorkers();
    }
@@ -60,7 +53,7 @@ public class MessageRouter
    
    public void shutdown()
    {
-      executor.shutdownNow();    //need to do since we're using infinite loops for each thread
+      executor.shutdownNow();    //need to do since we're using infinite loop for TestWorkerThread
       while(!executor.isTerminated()){}
    }
 
@@ -79,7 +72,7 @@ public class MessageRouter
             //assumes only one worker is interested in each message type
             if(worker.canProcess(leftOver))
             {
-               LoggingUtil.log("Routing message to " + worker.getClass().getCanonicalName() + " ...");
+               //LoggingUtil.log("Routing message to " + worker.getClass().getCanonicalName() + " ...");
                
                byte[] remaining = null;
                

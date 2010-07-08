@@ -31,27 +31,27 @@ public class Daemon implements Callable<Object>
    private InetAddress hostAddress;
    private int port;
    private long timeout;
-   
+
    private ServerSocketChannel serverChannel;
    private Selector selector;
-   private SocketChannel socketChannel; // only possible if one connection is ever being made to server
+   private SocketChannel socketChannel; // only possible if one connection is
+   // ever being made to server
    private ByteBuffer readBuffer;
 
    private List<ChangeRequest> changeRequests = new LinkedList<ChangeRequest>();
    private List<ByteBuffer> pendingData = new ArrayList<ByteBuffer>();
 
+   private DaemonState state;
    private Timer readyTimer;
    private MessageRouter router;
-
-   private Boolean ready = false;
-   private Boolean shutdown = false;
 
    public Daemon(int port, int bufferSize, long timeout, File reportDir) throws IOException
    {
       this.hostAddress = InetAddress.getByName(LOCALHOST);
       this.port = port;
       this.timeout = timeout;
-      
+
+      this.state = DaemonState.OPEN;
       this.readyTimer = new Timer();
       this.readBuffer = ByteBuffer.allocate(bufferSize);
       this.selector = this.initSelector();
@@ -74,25 +74,26 @@ public class Daemon implements Callable<Object>
       // Register the server socket channel, indicating an interest in
       // accepting new connections
       serverChannel.register(socketSelector, SelectionKey.OP_ACCEPT);
-      
-      //timeout if not ready by provided timeout value
-      TimerTask task = new TimerTask(){
+
+      // timeout if not ready by provided timeout value
+      TimerTask task = new TimerTask()
+      {
          @Override
          public void run()
          {
-            if(!isReady())
+            if (!isReady())
             {
                LoggingUtil.log("The Ant task timed out waiting for a connection from the player...");
                halt();
             }
          }
       };
-      
+
       readyTimer.schedule(task, timeout);
 
       return socketSelector;
    }
-   
+
    private void destroyTimer()
    {
       readyTimer.cancel();
@@ -110,13 +111,37 @@ public class Daemon implements Callable<Object>
       return port;
    }
 
+   public boolean isOpen()
+   {
+      boolean result = false;
+
+      synchronized (state)
+      {
+         result = (state == DaemonState.OPEN);
+      }
+
+      return result;
+   }
+
    public boolean isReady()
    {
       boolean result = false;
 
-      synchronized (ready)
+      synchronized (state)
       {
-         result = ready;
+         result = (state == DaemonState.READY);
+      }
+
+      return result;
+   }
+
+   public boolean isDone()
+   {
+      boolean result = false;
+
+      synchronized (state)
+      {
+         result = (state == DaemonState.DONE);
       }
 
       return result;
@@ -124,12 +149,24 @@ public class Daemon implements Callable<Object>
 
    public void ready()
    {
-      synchronized (ready)
+      synchronized (state)
       {
-         ready = true;
+         state = DaemonState.READY;
       }
-      
+
       destroyTimer();
+
+      LoggingUtil.log("Deamon ready.");
+   }
+
+   public void done()
+   {
+      synchronized (state)
+      {
+         state = DaemonState.DONE;
+      }
+
+      LoggingUtil.log("Deamon done.");
    }
 
    public void halt()
@@ -139,35 +176,17 @@ public class Daemon implements Callable<Object>
          changeRequests.add(new ChangeRequest(ChangeRequest.SHUTDOWN, 0));
       }
 
-      synchronized(this.shutdown)
-      {
-         shutdown = true;
-      }
-      
-      
-      if(readyTimer != null)
+      if (readyTimer != null)
       {
          destroyTimer();
       }
-      
+
       selector.wakeup();
-   }
-   
-   public boolean shuttingDown()
-   {
-      boolean result = false;
-      
-      synchronized(shutdown)
-      {
-         result = shutdown;
-      }
-      
-      return result;
    }
 
    public Object call() throws Exception
    {
-      while (serverChannel.isOpen())
+      server: while (serverChannel.isOpen())
       {
          try
          {
@@ -184,7 +203,7 @@ public class Daemon implements Callable<Object>
                      break;
                   case ChangeRequest.SHUTDOWN:
                      close();
-                     return null;
+                     break server;
                   }
                }
 
@@ -200,7 +219,7 @@ public class Daemon implements Callable<Object>
             {
                SelectionKey key = (SelectionKey) selectedKeys.next();
                selectedKeys.remove(); // remove keys as read as to not read
-                                      // again
+               // again
 
                if (!key.isValid())
                {
@@ -234,11 +253,12 @@ public class Daemon implements Callable<Object>
                ioe.printStackTrace();
             }
 
-            throw new BuildException(e); // throw that error as a build
-                                         // exception
+            // throw that error as a build exception
+            throw new BuildException(e); 
          }
       }
 
+      LoggingUtil.log("Deamon closed.");
       return null;
    }
 
@@ -250,7 +270,7 @@ public class Daemon implements Callable<Object>
       }
 
       // close the current socket channel and remove it
-      if (this.socketChannel != null)
+      if (this.socketChannel != null && this.socketChannel.isOpen())
       {
          this.socketChannel.close();
       }
@@ -288,14 +308,13 @@ public class Daemon implements Callable<Object>
 
          if (numRead == -1)
          {
-            // Remote entity shut the socket down. Do the
-            // same from our end and cancel the channel.
+            // Player closed, close socket channel
             key.cancel();
             key.channel().close();
-
-            if (isReady())
+            
+            if(isReady())
             {
-               throw new ClientShutdownException();
+               throw new ClientShutdownException("The player connection was unexpectedly closed ....");
             }
          }
 
@@ -319,7 +338,7 @@ public class Daemon implements Callable<Object>
    {
       synchronized (this.changeRequests)
       {
-         LoggingUtil.log("Recieved request to write ...");
+         // LoggingUtil.log("Recieved request to write ...");
 
          // Indicate we want the interest ops set changed
          this.changeRequests.add(new ChangeRequest(ChangeRequest.CHANGEOPS, SelectionKey.OP_WRITE));
@@ -369,14 +388,15 @@ public class Daemon implements Callable<Object>
 
    private void close() throws IOException
    {
-      router.shutdown();
       selector.close();
-      
-      if(socketChannel != null)
+
+      if (socketChannel != null)
       {
          socketChannel.close();
       }
-      
+
       serverChannel.close();
+
+      router.shutdown();
    }
 }

@@ -56,9 +56,9 @@ public class FlashPlayerTrustWorker implements Worker
          
          negotiated = true;
       }
-      catch(Exception e)
+      catch(IllegalArgumentException iae)
       {
-         throw new WorkerException("Could not parse FP trust policy template", e);
+         throw new WorkerException("Could not parse FP trust policy template", iae);
       }
       
       return null;

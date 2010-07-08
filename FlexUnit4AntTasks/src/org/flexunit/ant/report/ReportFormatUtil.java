@@ -90,6 +90,11 @@ public class ReportFormatUtil
    
    public static String formatTime(long time)
    {
-      return String.valueOf(time / 1000.0000);
+      return String.format("%.3f", new Double(time / 1000.0000));
+   }
+   
+   public static String sanitizeClassName(String className)
+   {
+      return className.replace("::", ".");
    }
 }

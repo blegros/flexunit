@@ -1,7 +1,6 @@
 package org.flexunit.ant.daemon.integration;
 
 import java.io.File;
-import java.net.InetAddress;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -22,7 +21,7 @@ public class DaemonProcessTest
          Future<Object> future = executor.submit(new Daemon(
                   1025, 
                   64000, 
-                  10000L, 
+                  5000L, 
                   new File("/Users/dblegros/Documents/workspace/flexunit/FlexUnit4AntTasks/test/temp"
                )));
          

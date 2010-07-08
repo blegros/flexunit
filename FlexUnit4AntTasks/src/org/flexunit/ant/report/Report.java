@@ -32,14 +32,15 @@ public class Report
     * @param reportDir
     *           Directory to hold report file.
     */
-   public void save(File reportDir) throws BuildException
+   public void save(File reportDir) throws ReportException
    {
       try
       {
          if(channel == null)
          {
             // Open the file matching the parameter suite
-            final File file = new File(reportDir, FILENAME_PREFIX + suite.getClassName() + FILENAME_EXTENSION);
+            final String safeClassName = ReportFormatUtil.sanitizeClassName(suite.getClassName());
+            final File file = new File(reportDir, FILENAME_PREFIX + safeClassName  + FILENAME_EXTENSION);
             final FileOutputStream fos = new FileOutputStream(file);
             channel = fos.getChannel();
          }
@@ -52,7 +53,7 @@ public class Report
       }
       catch (Exception e)
       {
-         throw new BuildException("Error saving report.", e);
+         throw new ReportException("Error saving report.", e);
       }
    }
    
