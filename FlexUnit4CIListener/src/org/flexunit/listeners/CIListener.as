@@ -22,19 +22,20 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  *
- * @author     Jeff Tapper
+ * @author     Brian LeGros
  * @version
  **/
 
 package org.flexunit.listeners
 {
-	import flash.events.DataEvent;
+	import flash.events.ErrorEvent;
 	import flash.events.Event;
 	import flash.events.EventDispatcher;
 	import flash.events.IOErrorEvent;
+	import flash.events.ProgressEvent;
 	import flash.events.SecurityErrorEvent;
 	import flash.events.TimerEvent;
-	import flash.net.XMLSocket;
+	import flash.net.Socket;
 	import flash.utils.Timer;
 	
 	import org.flexunit.listeners.closer.ApplicationCloser;
@@ -52,21 +53,15 @@ package org.flexunit.listeners
 	{
 		protected static const DEFAULT_PORT : uint = 1024;
 		protected static const DEFAULT_SERVER : String = "127.0.0.1";
-		private static const SUCCESS:String = "success";
-		private static const ERROR:String = "error";
-		private static const FAILURE:String = "failure";
-		private static const IGNORE:String = "ignore";
-		
-		private var successes:Array = new Array();
-		private var ignores:Array = new Array();
+      private const HANDSHAKE_REQUEST : String = "?ack?";
+      private const HANDSHAKE_RESPONSE : String = "!yack!";
+      private const HEARTBEAT_REQUEST : String = "?thump?";
+      private const HEARTBEAT_RESPONSE : String = "!thump!";
+      private const END_OF_RUN_NOTICE : String = "!EOR!";
 		
 		private var _ready:Boolean = false;
 		
-		private static const END_OF_TEST_ACK : String ="<endOfTestRunAck/>";
-		private static const END_OF_TEST_RUN : String = "<endOfTestRun/>";
-		private static const START_OF_TEST_RUN_ACK : String = "<startOfTestRunAck/>";
-		
-		private var socket:XMLSocket;
+		private var socket:Socket;
 		
 		[Inspectable]
 		public var port : uint;
@@ -77,8 +72,8 @@ package org.flexunit.listeners
 		public var closer : ApplicationCloser;
 		
 		private var lastFailedTest:IDescription;
+      private var lastTestTime : Number;
 		private var timeOut:Timer;
-		private var lastTestTime:Number;
 		
 		public function CIListener(port : uint = DEFAULT_PORT, server : String = DEFAULT_SERVER) 
 		{
@@ -86,13 +81,12 @@ package org.flexunit.listeners
 			this.server = server;
 			this.closer = new StandAloneFlashPlayerCloser(); //default application closer
 			
-			socket = new XMLSocket ();
-			socket.addEventListener( DataEvent.DATA, dataHandler );
-			socket.addEventListener( Event.CONNECT, handleConnect );
-			socket.addEventListener( IOErrorEvent.IO_ERROR, errorHandler);
-			socket.addEventListener( SecurityErrorEvent.SECURITY_ERROR,errorHandler);
-			socket.addEventListener( Event.CLOSE,errorHandler);
-			
+			socket = new Socket();
+         socket.addEventListener( ProgressEvent.SOCKET_DATA, onData);
+         socket.addEventListener( Event.CONNECT, onConnect);
+         socket.addEventListener( IOErrorEvent.IO_ERROR, onError);
+         socket.addEventListener( SecurityErrorEvent.SECURITY_ERROR, onError);
+         
 			timeOut = new Timer( 2000, 1 );
 			timeOut.addEventListener(TimerEvent.TIMER_COMPLETE, declareBroken, false, 0, true );
 			timeOut.start();
@@ -101,14 +95,17 @@ package org.flexunit.listeners
 			{
 				socket.connect( server, port );
 				timeOut.stop();
-			} catch (e:Error) {
+			} 
+         catch (e:Error) 
+         {
 				//This needs to be more than a trace
 				trace (e.message);
 			}
 		}
 		
-		private function declareBroken( event:TimerEvent ):void {
-			errorHandler( new Event( "broken") );
+		private function declareBroken( event:TimerEvent ):void 
+      {
+			onError( new ErrorEvent("Flash movie timed out while attempting to connect to [" + server + ":" + port + "].") );
 		}
 		
 		[Bindable(event="listenerReady")]
@@ -117,23 +114,66 @@ package org.flexunit.listeners
 			return _ready;
 		}
 
-		private function setStatusReady():void {
+		private function readyToGo() : void 
+      {
 			_ready = true;
 			dispatchEvent( new Event( AsyncListenerWatcher.LISTENER_READY ) );
 		}
+      
+      private function onConnect(event:Event):void
+      {
+         socket.writeUTF(HANDSHAKE_REQUEST);
+         socket.flush();
+      }
+      
+      private function onError(event:Event):void
+      {
+         if ( !ready ) {
+            //If we are not yet ready and received this, just inform the core so it can move on
+            dispatchEvent( new Event( AsyncListenerWatcher.LISTENER_FAILED ) );
+         } else {
+            //If on the other hand we were ready once, then the core is counting on us... so, if something goes
+            //wrong now, we are likely hung up. For now we are simply going to bail out of this process
+            exit();
+         }
+      }
 
-		private function getTestCount( description:IDescription ):int 
-		{
-			return description.testCount;
-		}
+      private function onData( event : ProgressEvent ) : void
+      {
+         var result : String = socket.readUTF();
+         if(!ready && result == HANDSHAKE_RESPONSE)
+         {
+            readyToGo();
+         }
+         
+         if(ready && result == HEARTBEAT_REQUEST)
+         {
+            //tell the server we're alive
+            writeHeartBeatResponse();
+         }
+      }
+      
+      private function writeHeartBeatResponse() : void
+      {
+         socket.writeUTF(HEARTBEAT_RESPONSE);
+         socket.flush();
+      }
+      
+      private function writeTestResult(descriptor : Descriptor, status : String, failureMessage : String = null, failureType : String = null, failureStackTrace : String = null) : void
+      {
+         var result : TestResult = new TestResult();
+         result.className = descriptor.suite;
+         result.name = descriptor.method;
+         result.time = lastTestTime;
+         result.status = status;
+         result.failureMessage = failureMessage;
+         result.failureType = failureType;
+         result.failureStackTrace = failureStackTrace;
+         
+         socket.writeObject(result);
+         socket.flush();
+      }
 		
-		private function testTimeString( time:Number ):String {
-			var timeShifted:Number = time * 1000;
-			var timeFloor:Number = Math.floor( timeShifted );
-			var timeStr:String = String( ( timeFloor/1000 ) );
-			return timeStr;
-		}
-
 		public function testTimed( description:IDescription, runTime:Number ):void {
 			lastTestTime = runTime;
 			//trace( description.displayName + " took " + runTime + " ms " );
@@ -148,7 +188,9 @@ package org.flexunit.listeners
 		
 		public function testRunFinished( result:Result ):void 
 		{
-			sendResults(END_OF_TEST_RUN);
+         socket.writeUTF(END_OF_RUN_NOTICE);
+         socket.flush();
+         exit();
 		}
 		
 		public function testStarted( description:IDescription ):void 
@@ -160,8 +202,8 @@ package org.flexunit.listeners
 		{
 			// called after each test
 			if(!lastFailedTest || description.displayName != lastFailedTest.displayName){
-				var desc:Descriptor = getDescriptorFromDescription(description);
-				sendResults("<testcase classname=\""+desc.suite+"\" name=\""+desc.method+"\" time=\"" + testTimeString( lastTestTime )  + "\" status=\""+SUCCESS+"\" />");
+            var descriptor : Descriptor = getDescriptorFromDescription(description);
+            writeTestResult(descriptor, TestResult.SUCCESS);
 			}
 		}
 		
@@ -174,13 +216,7 @@ package org.flexunit.listeners
 		{
 			// called on ignored test if we want to send ignore to ant.
 			var descriptor:Descriptor = getDescriptorFromDescription(description);
-
-			var xml:String =
-				"<testcase classname=\""+descriptor.suite+"\" name=\""+descriptor.method+"\" time=\"" + testTimeString( lastTestTime )  + "\" status=\""+IGNORE+"\">"
-				+ "<skipped />"
-				+ "</testcase>";
-
-			sendResults( xml );
+         writeTestResult(descriptor, TestResult.IGNORE);
 		}
 		
 		
@@ -188,40 +224,18 @@ package org.flexunit.listeners
 		{
 			// called on a test failure
 			lastFailedTest = failure.description;
-			var descriptor:Descriptor =
-				getDescriptorFromDescription(failure.description);
-			var type : String = failure.description.displayName
-			var message : String = failure.message;
-			var stackTrace : String = failure.stackTrace;
-			var methodName : String = descriptor.method;
+			var descriptor:Descriptor = getDescriptorFromDescription(failure.description);
+         
+         var stackTrace : String = FailureFormatter.xmlEscapeMessage( stackTrace );
+         var message : String = FailureFormatter.xmlEscapeMessage( message );
 			
-			if ( stackTrace != null ) stackTrace = stackTrace.toString();
-			
-			stackTrace = FailureFormatter.xmlEscapeMessage( stackTrace );
-			message = FailureFormatter.xmlEscapeMessage( message );
- 
-			var xml : String = null;
-			
+         var status : String = TestResult.FAILURE;
 			if(FailureFormatter.isError(failure.exception)) 
 			{
-				xml =
-					"<testcase classname=\""+descriptor.suite+"\" name=\""+descriptor.method+"\" time=\"" + testTimeString( lastTestTime )  + "\" status=\""+ERROR+"\">"
-					+ "<error message=\"" + message + "\" type=\""+ type +"\" >"
-					+ "<![CDATA[" + stackTrace + "]]>"
-					+ "</error>"
-					+ "</testcase>";
-			}
-			else 
-			{
-				xml =
-					"<testcase classname=\""+descriptor.suite+"\" name=\""+descriptor.method+"\" time=\"" + testTimeString( lastTestTime )  + "\" status=\""+FAILURE+"\">"
-					+ "<failure message=\"" + message + "\" type=\""+ type +"\" >"
-					+ "<![CDATA[" + stackTrace + "]]>"
-					+ "</failure>"
-					+ "</testcase>";
+            status = TestResult.ERROR;
 			}
 			
-			sendResults(xml);
+         writeTestResult(descriptor, status, message, failure.description.displayName, stackTrace);
 		}
 		
 		/*
@@ -253,52 +267,6 @@ package org.flexunit.listeners
 				descriptor.path + "::" + classMethodArray[0];
 			descriptor.method = classMethodArray[1];
 			return descriptor;
-		}
-		
-		protected function sendResults(msg:String):void
-		{
-			if(socket.connected)
-			{
-				socket.send( msg );				
-			}
-			
-			trace(msg);
-		}
-		
-		private function handleConnect(event:Event):void
-		{
-			//This is a good start, but we are no longer considering this a valid
-			//time to begin sending results
-			//We are going to wait until we get some data first
-			//_ready = true;
-			//dispatchEvent( new Event( AsyncListenerWatcher.LISTENER_READY ) );
-		}
-
-		private function errorHandler(event:Event):void
-		{
-			if ( !ready ) {
-				//If we are not yet ready and received this, just inform the core so it can move on
-				dispatchEvent( new Event( AsyncListenerWatcher.LISTENER_FAILED ) );
-			} else {
-				//If on the other hand we were ready once, then the core is counting on us... so, if something goes
-				//wrong now, we are likely hung up. For now we are simply going to bail out of this process
-				exit();
-			}
-		}
-
-		private function dataHandler( event : DataEvent ) : void
-		{
-			var data : String = event.data;
-
-			// If we received an acknowledgement on startup, the java server is read and we can start sending.			
-			if ( data == START_OF_TEST_RUN_ACK ) {
-				setStatusReady();
-			} else if ( data == END_OF_TEST_ACK ) {
-				// If we received an acknowledgement finish-up.
-				// Close the socket.
-				socket.close();
-				exit();
-			}
 		}
 		
 		/**
