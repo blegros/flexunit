@@ -1,0 +1,9 @@
+<ivy-module version="2.0">
+    <info organisation="org.flexunit" module="cilistener" />
+    <publications>
+       <artifact name="cilistener" extension="swc" />
+    </publications>
+    <dependencies>
+       <dependency name="flexunit" revision="latest.integration" />
+    </dependencies>
+</ivy-module>

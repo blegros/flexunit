@@ -1,0 +1,8 @@
+<ivy-module version="2.0">
+    <info organisation="org.flexunit" module="test" />
+    <dependencies>
+       <dependency name="flexunit" revision="latest.integration" />
+       <dependency name="cilistener" revision="latest.integration" />
+       <dependency name="flexcoverlistener" revision="latest.integration" />
+    </dependencies>
+</ivy-module>

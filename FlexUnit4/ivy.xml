@@ -1,0 +1,6 @@
+<ivy-module version="2.0">
+    <info organisation="org.flexunit" module="flexunit" />
+    <publications>
+       <artifact name="flexunit" extension="swc" />
+    </publications>
+</ivy-module>

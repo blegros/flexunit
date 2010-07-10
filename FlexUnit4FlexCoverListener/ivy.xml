@@ -1,0 +1,10 @@
+<ivy-module version="2.0">
+    <info organisation="org.flexunit" module="flexcoverlistener" />
+    <publications>
+       <artifact name="flexcoverlistener" extension="swc" />
+    </publications>
+    <dependencies>
+       <dependency name="flexunit" revision="latest.integration" />
+       <dependency name="cilistener" revision="latest.integration" />
+    </dependencies>
+</ivy-module>

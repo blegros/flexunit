@@ -1,0 +1,12 @@
+<ivysettings>
+   <settings defaultResolver="ibiblio" />
+   <resolvers>
+      <ibiblio name="ibiblio" />
+      <filesystem name="internal">
+         <artifact pattern="${repository.dir}/[module]/[artifact]-[revision].[ext]" />
+      </filesystem>
+   </resolvers>
+   <modules>
+      <module organisation="org.flexunit" name=".*" resolver="internal" />
+   </modules>
+</ivysettings>

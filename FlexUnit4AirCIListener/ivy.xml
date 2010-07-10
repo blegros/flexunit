@@ -1,0 +1,10 @@
+<ivy-module version="2.0">
+    <info organisation="org.flexunit" module="aircilistener" />
+    <publications>
+       <artifact name="aircilistener" extension="swc" />
+    </publications>
+    <dependencies>
+       <dependency name="flexunit" revision="latest.integration" />
+       <dependency name="cilistener" revision="latest.integration" />
+    </dependencies>
+</ivy-module>
