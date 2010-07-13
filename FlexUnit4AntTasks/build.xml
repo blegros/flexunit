@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="FlexUnitAntTasks" basedir="." default="package">
+<project name="FlexUnitAntTasks" xmlns:ivy="antlib:org.apache.ivy.ant" basedir="." default="package">
 
    <!--Configuration-->
    <property name="build.artifactId" value="flexUnitTasks" />
@@ -22,6 +22,9 @@
       <mkdir dir="${dist.loc}" />
       <mkdir dir="${bin.loc}" />
       <mkdir dir="${doc.loc}" />
+      
+      <ivy:configure file="${basedir}/../ivysettings.xml" />
+      <ivy:retrieve />
    </target>
 
    <target name="compile" depends="init">
