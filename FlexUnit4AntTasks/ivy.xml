@@ -1,16 +1,16 @@
 <ivy-module version="2.0">
     <info organisation="org.flexunit" module="anttasks" />
     <publications>
-       <artifact name="anttasks" type="impl" extension="jar" />
-       <artifact name="anttasks" type="source" extension="jar" />
-       <artifact name="anttasks" type="javadoc" extension="jar" />
+       <artifact name="anttasks" type="impl" ext="jar" />
+       <artifact name="anttasks" type="source" ext="jar" />
+       <artifact name="anttasks" type="javadoc" ext="jar" />
     </publications>
     <dependencies>
-       <dependency organisation="org.apache.ant" name="ant" revision="1.7.1" />
-       <dependency organisation="org.apache.ant" name="ant-launcher" revision="1.7.1" />
-       <dependency organisation="org.apache.ant" name="ant-testutil" revision="1.7.1" />
-       <dependency organisation="junit" name="junit" revision="3.8.1" />
-       <dependency organisation="com.adobe.blazeds" name="blazeds-common" revision="3.2.0.3978" />
-       <dependency organisation="com.adobe.blazeds" name="blazeds-core" revision="3.2.0.3978" />
+       <dependency org="org.apache.ant" name="ant" rev="1.7.1" />
+       <dependency org="org.apache.ant" name="ant-launcher" rev="1.7.1" />
+       <dependency org="org.apache.ant" name="ant-testutil" rev="1.7.1" />
+       <dependency org="junit" name="junit" rev="3.8.1" />
+       <dependency org="com.adobe.blazeds" name="blazeds-common" rev="3.2.0.3978" />
+       <dependency org="com.adobe.blazeds" name="blazeds-core" rev="3.2.0.3978" />
     </dependencies>
 </ivy-module>
