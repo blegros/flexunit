@@ -1,12 +1,14 @@
 <ivysettings>
-   <settings defaultResolver="ibiblio" />
+   <settings defaultResolver="default-chain" />
    <resolvers>
-      <ibiblio name="ibiblio" />
-      <filesystem name="internal">
-         <artifact pattern="${repository.dir}/[module]/[artifact]-[revision].[ext]" />
-      </filesystem>
+      <chain name="default-chain">
+         <filesystem name="internal">
+            <artifact pattern="${ivy.default.ivy.user.dir}/[module]/[artifact]-[revision].[ext]" />
+         </filesystem>
+         <ibiblio name="maven2" m2compatible="true" />
+      </chain>
    </resolvers>
    <modules>
-      <module organisation="org.flexunit" name=".*" resolver="internal" />
+      <module organisation="org.flexunit" name=".*" />
    </modules>
 </ivysettings>
