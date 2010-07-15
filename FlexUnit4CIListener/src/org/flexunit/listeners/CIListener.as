@@ -188,6 +188,11 @@ package org.flexunit.listeners
 		
 		public function testRunFinished( result:Result ):void 
 		{
+         if(!CoverageData.empty)
+         {
+            socket.writeObject(CoverageData.instance);
+         }
+         
          socket.writeUTF(END_OF_RUN_NOTICE);
          socket.flush();
          exit();
