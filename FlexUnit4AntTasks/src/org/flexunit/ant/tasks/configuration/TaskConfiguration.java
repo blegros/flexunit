@@ -169,7 +169,7 @@ public class TaskConfiguration
       
       testRunConfiguration.validate();
       
-      generateDefaults();
+      propagateSharedConfiguration();
    }
 
    protected void validateSharedProperties() throws BuildException
@@ -195,7 +195,7 @@ public class TaskConfiguration
       }
       
       //if we can't find the FLEX_HOME and we're using ADL or compilation
-      if((flexHome == null || !flexHome.exists()) && (testRunConfiguration.getPlayer().equals("air") || shouldCompile()))
+      if((flexHome == null || !flexHome.exists()) && (new String("air").equals(testRunConfiguration.getPlayer()) || shouldCompile()))
       {
          throw new BuildException("Please specify, or verify the location for, the FLEX_HOME property.  "
                + "It is required when testing with 'air' as the player or when using the 'testSource' element.  "
@@ -203,7 +203,7 @@ public class TaskConfiguration
       }
    }
    
-   protected void generateDefaults()
+   protected void propagateSharedConfiguration()
    {
       LoggingUtil.log("Generating default values ...");
       
