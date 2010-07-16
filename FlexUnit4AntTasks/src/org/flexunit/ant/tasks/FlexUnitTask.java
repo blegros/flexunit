@@ -5,7 +5,9 @@ import org.apache.tools.ant.Project;
 import org.apache.tools.ant.Task;
 import org.apache.tools.ant.taskdefs.Property;
 import org.apache.tools.ant.types.FileSet;
-import org.flexunit.ant.tasks.configuration.TaskConfiguration;
+import org.flexunit.ant.Compilation;
+import org.flexunit.ant.TestRun;
+import org.flexunit.ant.configuration.TaskConfiguration;
 
 public class FlexUnitTask extends Task
 {

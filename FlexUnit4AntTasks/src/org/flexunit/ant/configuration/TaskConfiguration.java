@@ -1,4 +1,4 @@
-package org.flexunit.ant.tasks.configuration;
+package org.flexunit.ant.configuration;
 
 import java.io.File;
 import java.util.Arrays;

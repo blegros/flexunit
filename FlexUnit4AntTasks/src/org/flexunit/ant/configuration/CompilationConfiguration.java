@@ -1,12 +1,12 @@
-package org.flexunit.ant.tasks.configuration;
+package org.flexunit.ant.configuration;
 
 import java.io.File;
 
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.types.FileSet;
 import org.flexunit.ant.LoggingUtil;
-import org.flexunit.ant.tasks.types.LibraryPaths;
-import org.flexunit.ant.tasks.types.SourcePaths;
+import org.flexunit.ant.types.LibraryPaths;
+import org.flexunit.ant.types.SourcePaths;
 
 public class CompilationConfiguration implements StepConfiguration
 {
