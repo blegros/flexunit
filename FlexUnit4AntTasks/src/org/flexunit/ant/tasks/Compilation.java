@@ -1,4 +1,4 @@
-package org.flexunit.ant;
+package org.flexunit.ant.tasks;
 
 import java.io.File;
 
@@ -11,6 +11,7 @@ import org.apache.tools.ant.types.Commandline.Argument;
 import org.apache.tools.ant.types.resources.FileResource;
 import org.apache.tools.ant.types.resources.URLResource;
 import org.apache.tools.ant.util.ResourceUtils;
+import org.flexunit.ant.LoggingUtil;
 import org.flexunit.ant.configuration.CompilationConfiguration;
 
 public class Compilation
@@ -161,7 +162,6 @@ public class Compilation
          airConfig.setValue("+configname=air");
       }
       
-      //TODO: Output all config file arguments
       if(configuration.getFlexConfig() != null)
       {
          Argument customFlexConfig = task.createArg();

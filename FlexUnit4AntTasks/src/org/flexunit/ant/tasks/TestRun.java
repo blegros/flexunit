@@ -1,36 +1,29 @@
 package org.flexunit.ant.tasks;
 
-import java.util.concurrent.Callable;
+import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
-import org.flexunit.ant.FlexUnitSocketServer;
-import org.flexunit.ant.FlexUnitSocketThread;
 import org.flexunit.ant.LoggingUtil;
+import org.flexunit.ant.configuration.TestRunConfiguration;
+import org.flexunit.ant.daemon.Daemon;
 import org.flexunit.ant.launcher.commands.player.PlayerCommand;
 import org.flexunit.ant.launcher.commands.player.PlayerCommandFactory;
 import org.flexunit.ant.launcher.contexts.ExecutionContext;
 import org.flexunit.ant.launcher.contexts.ExecutionContextFactory;
-import org.flexunit.ant.report.Reports;
-import org.flexunit.ant.tasks.configuration.TestRunConfiguration;
 
 public class TestRun
 {
-   private final String TRUE = "true";
-   
    private TestRunConfiguration configuration;
    private Project project;
    
-   private Reports reports;
-
    public TestRun(Project project, TestRunConfiguration configuration)
    {
       this.project = project;
       this.configuration = configuration;
-      this.reports = new Reports();
    }
    
    public void run() throws BuildException
@@ -39,8 +32,8 @@ public class TestRun
       
       try
       {
-         // setup daemon
-         Future<Object> daemon = setupSocketThread();
+         // setup callable thread
+         Future<Object> future = setupDaemon();
 
          // run the execution context and player
          PlayerCommand player = obtainPlayer();
@@ -53,19 +46,37 @@ public class TestRun
          Process process = player.launch();
 
          // block until daemon is completely done with all test data
-         daemon.get();
+         future.get();
 
          //stop the execution context now that socket thread is done
          context.stop(process);
-
-         // print summaries and check for failure
-         analyzeReports();
-
-      } 
-      catch (Exception e)
+      } catch (Exception e)
       {
          throw new BuildException(e);
       }
+   }
+   
+   /**
+    * Create a server socket for receiving the test reports from FlexUnit. We
+    * read and write the test reports inside of a Thread.
+    */
+   protected Future<Object> setupDaemon() throws IOException
+   {
+      LoggingUtil.log("Setting up daemon process ...");
+
+      // Create server for use by thread
+      Daemon server = new Daemon(
+            configuration.getPort(), 
+            configuration.getServerBufferSize(), 
+            configuration.getSocketTimeout(), 
+            configuration.getReportDir()
+         );
+
+      // Get handle to service to run object in thread.
+      ExecutorService executor = Executors.newSingleThreadExecutor();
+
+      // Run object in thread and return Future.
+      return executor.submit(server);
    }
    
    /**
@@ -104,54 +115,5 @@ public class TestRun
       context.setCommand(player);
       
       return context;
-   }
-   
-   /**
-    * Create a server socket for receiving the test reports from FlexUnit. We
-    * read and write the test reports inside of a Thread.
-    */
-   protected Future<Object> setupSocketThread()
-   {
-      LoggingUtil.log("Setting up server process ...");
-
-      // Create server for use by thread
-      FlexUnitSocketServer server = new FlexUnitSocketServer(configuration.getPort(), 
-            configuration.getSocketTimeout(), configuration.getServerBufferSize(), 
-            configuration.usePolicyFile());
-
-      // Get handle to specialized object to run in separate thread.
-      Callable<Object> operation = new FlexUnitSocketThread(server,
-            configuration.getReportDir(), reports);
-
-      // Get handle to service to run object in thread.
-      ExecutorService executor = Executors.newSingleThreadExecutor();
-
-      // Run object in thread and return Future.
-      return executor.submit(operation);
-   }
-
-   /**
-    * End of test report run. Called at the end of a test run. If verbose is set
-    * to true reads all suites in the suite list and prints out a descriptive
-    * message including the name of the suite, number of tests run and number of
-    * tests failed, ignores any errors. If any tests failed during the test run,
-    * the build is halted.
-    */
-   protected void analyzeReports()
-   {
-      LoggingUtil.log("Analyzing reports ...");
-
-      // print out all report summaries
-      LoggingUtil.log("\n" + reports.getSummary(), true);
-
-      if (reports.hasFailures())
-      {
-         project.setNewProperty(configuration.getFailureProperty(), TRUE);
-
-         if (configuration.isFailOnTestFailure())
-         {
-            throw new BuildException("FlexUnit tests failed during the test run.");
-         }
-      }
    }
 }
