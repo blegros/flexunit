@@ -8,6 +8,7 @@ import org.flexunit.ant.LoggingUtil;
 import org.flexunit.ant.types.LibraryPaths;
 import org.flexunit.ant.types.SourcePaths;
 
+//TODO: Create type to handle multiple flex-config files
 public class CompilationConfiguration implements StepConfiguration
 {
    private File flexConfig;

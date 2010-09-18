@@ -8,8 +8,8 @@ import org.flexunit.ant.LoggingUtil;
 import org.flexunit.ant.daemon.Daemon;
 import org.flexunit.ant.daemon.helpers.AMF3Marshaler;
 import org.flexunit.ant.daemon.helpers.WorkerUtil;
-import org.flexunit.ant.report.Report;
-import org.flexunit.ant.report.ReportException;
+import org.flexunit.ant.report.TestReport;
+import org.flexunit.ant.report.TestReportException;
 import org.flexunit.ant.report.Suite;
 import org.flexunit.ant.report.Suites;
 import org.flexunit.ant.report.TestResult;
@@ -26,7 +26,7 @@ public class TestResultsWorker implements Worker, Runnable
    // used by consumer
    private File reportDir;
    private Suites suites;
-   private Report lastReport;
+   private TestReport lastReport;
 
    public TestResultsWorker(Daemon server, File reportDir)
    {
@@ -144,7 +144,7 @@ public class TestResultsWorker implements Worker, Runnable
          {
             writeReport(suite);
          }
-         catch (ReportException re) {
+         catch (TestReportException re) {
             re.printStackTrace();
             server.halt();
             break server;
@@ -173,14 +173,14 @@ public class TestResultsWorker implements Worker, Runnable
       return suite;
    }
 
-   private void writeReport(Suite suite) throws ReportException
+   private void writeReport(Suite suite) throws TestReportException
    {
       // Write out report
-      Report report = null;
+      TestReport report = null;
 
       if (lastReport == null)
       {
-         report = new Report(suite);
+         report = new TestReport(suite);
       }
       else
       {
@@ -191,7 +191,7 @@ public class TestResultsWorker implements Worker, Runnable
          }
          else
          {
-            report = new Report(suite);
+            report = new TestReport(suite);
          }
       }
 

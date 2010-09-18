@@ -46,9 +46,6 @@
       <copy file="${src.loc}/flexUnitDescriptor.template" todir="${bin.loc}" />
    	  <copy file="${src.loc}/TestRunner.template" todir="${bin.loc}" />
 
-      <unjar src="${lib.loc}/flex-messaging-core.jar" dest="${bin.loc}" />
-      <unjar src="${lib.loc}/flex-messaging-common.jar" dest="${bin.loc}" />
-
       <jar destfile="${dist.loc}/${build.finalName}">
          <fileset dir="${bin.loc}">
             <include name="**/*" />

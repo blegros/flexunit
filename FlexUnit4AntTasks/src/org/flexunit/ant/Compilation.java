@@ -161,10 +161,11 @@ public class Compilation
          airConfig.setValue("+configname=air");
       }
       
+      //TODO: Output all config file arguments
       if(configuration.getFlexConfig() != null)
       {
          Argument customFlexConfig = task.createArg();
-         customFlexConfig.setLine("-load-config \"" + configuration.getFlexConfig().getAbsolutePath() + "\"");
+         customFlexConfig.setLine("-load-config+=\"" + configuration.getFlexConfig().getAbsolutePath() + "\"");
       }
       
       Argument outputFile = task.createArg();
