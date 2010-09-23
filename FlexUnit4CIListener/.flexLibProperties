@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<flexLibProperties version="1">
+<flexLibProperties includeAllClasses="false" version="1">
   <includeClasses>
-    <classEntry path="org.flexunit.listeners.VisualDebuggerListener"/>
     <classEntry path="org.flexunit.listeners.CIListener"/>
+    <classEntry path="org.flexunit.listeners.Coverage"/>
+    <classEntry path="org.flexunit.listeners.CoverageData"/>
+    <classEntry path="org.flexunit.listeners.TestResult"/>
+    <classEntry path="org.flexunit.listeners.VisualDebuggerListener"/>
     <classEntry path="org.flexunit.listeners.closer.ApplicationCloser"/>
     <classEntry path="org.flexunit.listeners.closer.StandAloneFlashPlayerCloser"/>
   </includeClasses>
