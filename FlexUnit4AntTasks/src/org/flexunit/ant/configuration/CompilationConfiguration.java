@@ -105,7 +105,7 @@ public class CompilationConfiguration implements StepConfiguration
       
       if(testSources.exists() && testSources.isEmpty())
       {
-         throw new BuildException("No test files could be found for the provided 'testSource' elements.");
+         throw new BuildException("No test files could be found for the 'testSource' elements.");
       }
       
       if(!libraries.exists())

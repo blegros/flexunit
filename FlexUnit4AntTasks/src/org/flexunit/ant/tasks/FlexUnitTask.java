@@ -5,6 +5,9 @@ import org.apache.tools.ant.Project;
 import org.apache.tools.ant.Task;
 import org.apache.tools.ant.taskdefs.Property;
 import org.apache.tools.ant.types.FileSet;
+import org.flexunit.ant.Compilation;
+import org.flexunit.ant.Instrumentation;
+import org.flexunit.ant.TestRun;
 import org.flexunit.ant.configuration.TaskConfiguration;
 
 public class FlexUnitTask extends Task
@@ -160,6 +163,11 @@ public class FlexUnitTask extends Task
       configuration.setWorkingDir(workingDirPath);
    }
    
+   public void setCoverage(boolean coverage)
+   {
+      configuration.setCoverage(coverage);
+   }
+   
    /**
     * Called by Ant to execute the task.
     */
@@ -168,11 +176,18 @@ public class FlexUnitTask extends Task
       //verify entire configuration
       configuration.verify();
       
-      //compile tests if necessary
+      //compile test SWF if necessary
       if(configuration.shouldCompile())
       {
          Compilation compilation = new Compilation(getProject(), configuration.getCompilationConfiguration());
          configuration.setSwf(compilation.compile());
+      }
+      
+      //instrument test SWF if necessary
+      if(configuration.shouldInstrument())
+      {
+         Instrumentation instrumentation = new Instrumentation(configuration.getInstrumentationConfiguration());
+         configuration.setSwf(instrumentation.instrument());
       }
       
       //executes tests

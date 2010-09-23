@@ -1,6 +1,8 @@
 package org.flexunit.ant.types;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.tools.ant.DirectoryScanner;
 import org.apache.tools.ant.types.FileSet;
@@ -29,6 +31,18 @@ public class SourcePaths extends CompilationFileSetCollection
       }
       
       return elements.length() <= delimiter.length() ? "" : elements.substring(0, elements.length() - delimiter.length());
+   }
+   
+   public List<String> getPathElements()
+   {
+      List<String> elements = new ArrayList<String>();
+      
+      for(FileSet fileset : filesets)
+      {
+         elements.add(fileset.getDir().getAbsolutePath());
+      }
+      
+      return elements;
    }
    
    public String getImports()

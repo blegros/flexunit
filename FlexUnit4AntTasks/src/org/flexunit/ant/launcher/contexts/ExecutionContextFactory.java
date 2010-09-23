@@ -1,6 +1,6 @@
 package org.flexunit.ant.launcher.contexts;
 
-import org.flexunit.ant.launcher.OperatingSystem;
+import org.flexunit.ant.launcher.platforms.OperatingSystem;
 
 public class ExecutionContextFactory
 {

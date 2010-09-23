@@ -45,7 +45,7 @@ public class Daemon implements Callable<Object>
    private Timer readyTimer;
    private MessageRouter router;
 
-   public Daemon(int port, int bufferSize, long timeout, File reportDir) throws IOException
+   public Daemon(int port, int bufferSize, long timeout, File workingDir, File reportDir) throws IOException
    {
       this.hostAddress = InetAddress.getByName(LOCALHOST);
       this.port = port;
@@ -55,7 +55,7 @@ public class Daemon implements Callable<Object>
       this.readyTimer = new Timer();
       this.readBuffer = ByteBuffer.allocate(bufferSize);
       this.selector = this.initSelector();
-      this.router = new MessageRouter(this, timeout, reportDir);
+      this.router = new MessageRouter(this, timeout, workingDir, reportDir);
    }
 
    private Selector initSelector() throws IOException

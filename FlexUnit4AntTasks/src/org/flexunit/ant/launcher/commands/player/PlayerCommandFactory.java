@@ -2,9 +2,9 @@ package org.flexunit.ant.launcher.commands.player;
 
 import java.io.File;
 
-import org.flexunit.ant.launcher.OperatingSystem;
 import org.flexunit.ant.launcher.platforms.LinuxDefaults;
 import org.flexunit.ant.launcher.platforms.MacOSXDefaults;
+import org.flexunit.ant.launcher.platforms.OperatingSystem;
 import org.flexunit.ant.launcher.platforms.WindowsDefaults;
 
 public class PlayerCommandFactory

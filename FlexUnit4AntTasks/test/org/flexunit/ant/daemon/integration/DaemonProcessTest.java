@@ -22,8 +22,9 @@ public class DaemonProcessTest
                   1025, 
                   64000, 
                   5000L, 
-                  new File("/Users/dblegros/Documents/workspace/flexunit/FlexUnit4AntTasks/test/temp"
-               )));
+                  new File("/Users/dblegros/Documents/workspace/flexunit/FlexUnit4AntTasks/test/temp"),
+                  new File("/Users/dblegros/Documents/workspace/flexunit/FlexUnit4AntTasks/test/temp")
+              ));
          
          Object result = future.get();
       }

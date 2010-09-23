@@ -9,5 +9,10 @@
 	<classpathentry kind="lib" path="lib/ant-testutil-1.7.1.jar"/>
 	<classpathentry kind="lib" path="lib/flex-messaging-common.jar"/>
 	<classpathentry kind="lib" path="lib/flex-messaging-core.jar"/>
+	<classpathentry kind="lib" path="lib/apparat-core-1.0.RC6.jar"/>
+	<classpathentry kind="lib" path="lib/scala-library.jar"/>
+	<classpathentry kind="lib" path="lib/cobertura.jar"/>
+	<classpathentry kind="lib" path="lib/apparat-log-1.0.RC6.jar"/>
+	<classpathentry kind="lib" path="lib/log4j-1.2.9.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

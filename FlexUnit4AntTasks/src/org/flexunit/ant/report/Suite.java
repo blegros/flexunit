@@ -68,7 +68,7 @@ public class Suite
       if(className.equals(testResult.getClassName()))
       {
          //set the test result's name to the class name to report issues outside of test (i.e. - Before, After, etc)
-         if(testResult.getName().equals(null))
+         if(testResult.getName() == null)
          {
             testResult.setName(testResult.getClassName());
          }

@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.flexunit.ant.daemon.helpers.WorkerUtil;
+import org.flexunit.ant.daemon.workers.CoverageWorker;
 import org.flexunit.ant.daemon.workers.FlashPlayerTrustWorker;
 import org.flexunit.ant.daemon.workers.HandshakeWorker;
 import org.flexunit.ant.daemon.workers.HeartbeatWorker;
@@ -18,7 +19,7 @@ import org.flexunit.ant.daemon.workers.WorkerException;
 
 public class MessageRouter
 {
-   private static final int WORKER_THREAD_POOL_SIZE = 2;
+   private static final int WORKER_THREAD_POOL_SIZE = 3;
    
    private List<Worker> pipeline;
    private ExecutorService executor;
@@ -26,13 +27,14 @@ public class MessageRouter
    //used as an internal buffer for routed message leftovers
    byte[] leftOver = null;
    
-   public MessageRouter(Daemon server, long timeout, File reportDir)
+   public MessageRouter(Daemon server, long timeout, File workingDir, File reportDir)
    {
       pipeline = new ArrayList<Worker>();
       pipeline.add(new FlashPlayerTrustWorker(server));
       pipeline.add(new HandshakeWorker(server));
       pipeline.add(new HeartbeatWorker(server, timeout));
       pipeline.add(new TestResultsWorker(server, reportDir));
+      pipeline.add(new CoverageWorker(workingDir, reportDir));
       pipeline.add(new TestCompletionWorker(server));
       
       activateThreadedWorkers();

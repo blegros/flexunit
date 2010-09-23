@@ -4,7 +4,7 @@ import java.io.File;
 
 import org.apache.tools.ant.BuildException;
 import org.flexunit.ant.LoggingUtil;
-import org.flexunit.ant.launcher.OperatingSystem;
+import org.flexunit.ant.launcher.platforms.OperatingSystem;
 
 public class TestRunConfiguration implements StepConfiguration
 {
@@ -21,6 +21,7 @@ public class TestRunConfiguration implements StepConfiguration
    private boolean isLocalTrusted = true;
    private int port = 1024;
    private File reportDir = null;
+   private File workingDir = null;
    private int serverBufferSize = 262144; //bytes
    private int socketTimeout = 60000; //milliseconds
    private File swf = null;
@@ -134,6 +135,16 @@ public class TestRunConfiguration implements StepConfiguration
    public void setReportDir(File reportDir)
    {
       this.reportDir = reportDir;
+   }
+
+   public void setWorkingDir(File workingDir)
+   {
+      this.workingDir = workingDir;
+   }
+
+   public File getWorkingDir()
+   {
+      return workingDir;
    }
 
    public int getServerBufferSize()

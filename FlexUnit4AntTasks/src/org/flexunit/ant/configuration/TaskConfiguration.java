@@ -20,15 +20,18 @@ public class TaskConfiguration
    private File workingDir = null;
    private boolean verbose = false;
    private File flexHome = null;
+   private boolean coverage = false;
    
    private Project project;
    private CompilationConfiguration compilationConfiguration;
+   private InstrumentationConfiguration instrumentationConfiguration;
    private TestRunConfiguration testRunConfiguration;
    
    public TaskConfiguration(Project project)
    {
       this.project = project;
       this.compilationConfiguration = new CompilationConfiguration();
+      this.instrumentationConfiguration = new InstrumentationConfiguration();
       this.testRunConfiguration = new TestRunConfiguration();
       
       if(project.getProperty("FLEX_HOME") != null)
@@ -42,6 +45,11 @@ public class TaskConfiguration
       return compilationConfiguration;
    }
    
+   public InstrumentationConfiguration getInstrumentationConfiguration()
+   {
+      return instrumentationConfiguration;
+   }
+   
    public TestRunConfiguration getTestRunConfiguration()
    {
       return testRunConfiguration;
@@ -50,6 +58,11 @@ public class TaskConfiguration
    public void setCommand(String commandPath)
    {
       testRunConfiguration.setCommand(project.resolveFile(commandPath));
+   }
+   
+   public void setCoverage(boolean coverage)
+   {
+      this.coverage = coverage;
    }
    
    public void setDisplay(int display)
@@ -76,6 +89,7 @@ public class TaskConfiguration
    {
       fileset.setProject(project);
       compilationConfiguration.addSource(fileset);
+      instrumentationConfiguration.addSource(fileset);
    }
    
    public void addTestSource(FileSet fileset)
@@ -132,6 +146,7 @@ public class TaskConfiguration
    
    public void setSwf(File swf)
    {
+      instrumentationConfiguration.setSwf(swf);
       testRunConfiguration.setSwf(swf);
    }
    
@@ -158,6 +173,13 @@ public class TaskConfiguration
       return !noTestSources && (swf == null || !swf.exists());
    }
    
+   //TODO: Test me
+   public boolean shouldInstrument()
+   {
+      File swf = testRunConfiguration.getSwf();
+      return (shouldCompile() && coverage) || (swf != null && swf.exists() && coverage);
+   }
+   
    public void verify() throws BuildException
    {
       validateSharedProperties();
@@ -165,6 +187,11 @@ public class TaskConfiguration
       if(shouldCompile())
       {
          compilationConfiguration.validate();
+      }
+      
+      if(shouldInstrument())
+      {
+         instrumentationConfiguration.validate();
       }
       
       testRunConfiguration.validate();
@@ -226,6 +253,8 @@ public class TaskConfiguration
       workingDir.mkdirs();
       
       compilationConfiguration.setWorkingDir(workingDir);
+      instrumentationConfiguration.setWorkingDir(workingDir);
+      testRunConfiguration.setWorkingDir(workingDir);
       
       //create report directory if needed
       if (reportDir == null || !reportDir.exists())
