@@ -8,8 +8,11 @@ creationComplete="runTests();">
          import org.flexunit.listeners.@CI_LISTENER_CLASS@;
          import org.flexunit.runner.FlexUnitCore;
          import org.flexunit.runner.Request;
+         import apparat.coverage.Coverage;
          
 @IMPORT_REFS@
+         
+         Coverage;
          
          public function runTests() : void {
             var core : FlexUnitCore = new FlexUnitCore();
