@@ -2,7 +2,7 @@
 <flexLibProperties includeAllClasses="false" version="1">
   <includeClasses>
     <classEntry path="org.flexunit.listeners.CIListener"/>
-    <classEntry path="org.flexunit.listeners.Coverage"/>
+    <classEntry path="apparat.coverage.Coverage"/>
     <classEntry path="org.flexunit.listeners.CoverageData"/>
     <classEntry path="org.flexunit.listeners.TestResult"/>
     <classEntry path="org.flexunit.listeners.VisualDebuggerListener"/>
